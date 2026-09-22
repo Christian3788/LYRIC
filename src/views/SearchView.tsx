@@ -17,6 +17,7 @@ import {
   RefreshCw,
   Zap,
   Download,
+  Video,
 } from 'lucide-react';
 import { TRACKS, ARTISTS, ALBUMS, PLAYLISTS, GENRES } from '../data/mockCatalog';
 import { useAudio } from '../context/AudioContext';
@@ -24,6 +25,7 @@ import { formatTime } from '../utils/formatters';
 import { Track } from '../types';
 import { fetchRealSongs, fetchTopCharts } from '../services/realSongsService';
 import { searchFMATracks, downloadFMATrack } from '../services/fmaService';
+import { searchYouTubeMusic, fetchTrendingYouTubeMusic } from '../services/youtubeService';
 
 interface SearchViewProps {
   searchQuery: string;
@@ -56,13 +58,15 @@ export const SearchView: React.FC<SearchViewProps> = ({
   onNavigateAlbum,
   onNavigatePlaylist,
 }) => {
-  const { currentTrack, isPlaying, playTrack, togglePlayPause, addToQueue } = useAudio();
-  const [filterType, setFilterType] = useState<'all' | 'fma' | 'real' | 'tracks' | 'artists' | 'albums' | 'playlists'>('all');
+  const { currentTrack, isPlaying, playTrack, togglePlayPause, addToQueue, openVideo } = useAudio();
+  const [filterType, setFilterType] = useState<'all' | 'youtube' | 'fma' | 'real' | 'tracks' | 'artists' | 'albums' | 'playlists'>('all');
   const [addedTrackId, setAddedTrackId] = useState<string | null>(null);
   const [realTracks, setRealTracks] = useState<Track[]>([]);
   const [isLoadingReal, setIsLoadingReal] = useState<boolean>(false);
   const [fmaTracks, setFmaTracks] = useState<Track[]>([]);
   const [isLoadingFMA, setIsLoadingFMA] = useState<boolean>(false);
+  const [youtubeTracks, setYoutubeTracks] = useState<Track[]>([]);
+  const [isLoadingYouTube, setIsLoadingYouTube] = useState<boolean>(false);
   const [downloadingFMAId, setDownloadingFMAId] = useState<string | null>(null);
   const [hasManuallyFetched, setHasManuallyFetched] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -74,13 +78,14 @@ export const SearchView: React.FC<SearchViewProps> = ({
     }
   }, []);
 
-  // Debounced live fetch of real songs and Free Music Archive tracks via proxy
+  // Debounced live fetch of real songs, FMA tracks, and YouTube videos
   useEffect(() => {
     const trimmed = searchQuery.trim();
     if (!trimmed) {
       if (!hasManuallyFetched) {
         setRealTracks([]);
         setFmaTracks([]);
+        setYoutubeTracks([]);
       }
       return;
     }
@@ -88,12 +93,14 @@ export const SearchView: React.FC<SearchViewProps> = ({
     let isMounted = true;
     setIsLoadingReal(true);
     setIsLoadingFMA(true);
+    setIsLoadingYouTube(true);
 
     const timer = setTimeout(async () => {
       try {
-        const [fetchedReal, fetchedFMA] = await Promise.allSettled([
+        const [fetchedReal, fetchedFMA, fetchedYT] = await Promise.allSettled([
           fetchRealSongs(trimmed, 25),
           searchFMATracks(trimmed, 20),
+          searchYouTubeMusic(`${trimmed} official video`, 18),
         ]);
 
         if (isMounted) {
@@ -103,14 +110,19 @@ export const SearchView: React.FC<SearchViewProps> = ({
           if (fetchedFMA.status === 'fulfilled') {
             setFmaTracks(fetchedFMA.value);
           }
+          if (fetchedYT.status === 'fulfilled') {
+            setYoutubeTracks(fetchedYT.value);
+          }
           setIsLoadingReal(false);
           setIsLoadingFMA(false);
+          setIsLoadingYouTube(false);
         }
       } catch (err) {
         console.warn('Live search caught:', err);
         if (isMounted) {
           setIsLoadingReal(false);
           setIsLoadingFMA(false);
+          setIsLoadingYouTube(false);
         }
       }
     }, 350);
@@ -152,6 +164,23 @@ export const SearchView: React.FC<SearchViewProps> = ({
       console.warn('Error fetching FMA tracks:', e);
     } finally {
       setIsLoadingFMA(false);
+    }
+  };
+
+  // Handle manual "Fetch YouTube Trending" click
+  const handleFetchYouTubeTrending = async () => {
+    setIsLoadingYouTube(true);
+    setHasManuallyFetched(true);
+    try {
+      const ytResults = await fetchTrendingYouTubeMusic(24);
+      setYoutubeTracks(ytResults);
+      if (!searchQuery) {
+        onSearchChange('Trending Videos');
+      }
+    } catch (e) {
+      console.warn('Error fetching YouTube trending:', e);
+    } finally {
+      setIsLoadingYouTube(false);
     }
   };
 
@@ -258,6 +287,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   }, [cleanQuery, queryWords]);
 
   const hasResults =
+    youtubeTracks.length > 0 ||
     fmaTracks.length > 0 ||
     realTracks.length > 0 ||
     matchingTracks.length > 0 ||
@@ -271,9 +301,11 @@ export const SearchView: React.FC<SearchViewProps> = ({
 
   // Determine top highlight track
   const topResultTrack =
-    filterType === 'fma'
+    filterType === 'youtube'
+      ? youtubeTracks[0]
+      : filterType === 'fma'
       ? fmaTracks[0]
-      : fmaTracks[0] || realTracks[0] || matchingTracks[0];
+      : youtubeTracks[0] || fmaTracks[0] || realTracks[0] || matchingTracks[0];
 
   return (
     <div id="search-view" className="p-6 md:p-8 space-y-6 pb-24 max-w-7xl mx-auto">
@@ -288,7 +320,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
               type="text"
               value={searchQuery}
               onChange={e => onSearchChange(e.target.value)}
-              placeholder="Search real songs, Free Music Archive, artists (e.g. Taylor Swift, electronic, jazz)..."
+              placeholder="Search YouTube videos, songs, Free Music Archive, artists (e.g. Taylor Swift, electronic, jazz)..."
               className="w-full bg-[#242424] hover:bg-[#2b2b2b] focus:bg-[#2e2e2e] text-base md:text-lg text-white placeholder-[#7e7e7e] pl-12 pr-11 py-3.5 rounded-full outline-none border border-transparent focus:border-emerald-500/50 shadow-xl transition-all"
             />
             {searchQuery && (
@@ -297,6 +329,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
                   onSearchChange('');
                   setRealTracks([]);
                   setFmaTracks([]);
+                  setYoutubeTracks([]);
                 }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#383838] hover:bg-[#484848] text-white flex items-center justify-center transition-colors"
                 title="Clear search"
@@ -306,8 +339,18 @@ export const SearchView: React.FC<SearchViewProps> = ({
             )}
           </div>
 
-          {/* Quick Actions: Fetch Real Songs & Free Music Archive */}
+          {/* Quick Actions: YouTube Music, Free Music Archive, Real Songs */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <button
+              id="fetch-youtube-songs-btn"
+              onClick={handleFetchYouTubeTrending}
+              disabled={isLoadingYouTube}
+              className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-full bg-red-600 hover:bg-red-500 text-white font-bold text-xs sm:text-sm shadow-lg hover:shadow-red-600/20 active:scale-95 transition-all flex-1 sm:flex-initial whitespace-nowrap"
+            >
+              <Video className={`w-4 h-4 ${isLoadingYouTube ? 'animate-spin' : ''}`} />
+              <span>{isLoadingYouTube ? 'Fetching YouTube...' : 'YouTube Videos'}</span>
+            </button>
+
             <button
               id="fetch-fma-songs-btn"
               onClick={handleFetchFMATracks}
@@ -356,10 +399,11 @@ export const SearchView: React.FC<SearchViewProps> = ({
       </div>
 
       {/* 2. Filter Pills (when query or real songs exist) */}
-      {(cleanQuery || realTracks.length > 0 || fmaTracks.length > 0) && hasResults && (
+      {(cleanQuery || youtubeTracks.length > 0 || realTracks.length > 0 || fmaTracks.length > 0) && hasResults && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-[#242424] pt-2">
           {[
             { id: 'all', label: 'All' },
+            ...(youtubeTracks.length > 0 ? [{ id: 'youtube', label: `YouTube Videos (${youtubeTracks.length})` }] : []),
             ...(fmaTracks.length > 0 ? [{ id: 'fma', label: `Free Music Archive (${fmaTracks.length})` }] : []),
             ...(realTracks.length > 0 ? [{ id: 'real', label: `Global Hits (${realTracks.length})` }] : []),
             ...(matchingTracks.length > 0 ? [{ id: 'tracks', label: `Hits & Anthems (${matchingTracks.length})` }] : []),
@@ -612,6 +656,91 @@ export const SearchView: React.FC<SearchViewProps> = ({
                         );
                       })}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* YouTube Music & Official Videos Section */}
+            {(filterType === 'all' || filterType === 'youtube') && youtubeTracks.length > 0 && (
+              <div className="space-y-4 pt-4 border-t border-[#242424]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-red-600/20 text-red-500 flex items-center justify-center border border-red-500/30">
+                      <Video className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-bold text-white tracking-tight">YouTube Music & Videos</h2>
+                        <span className="px-2 py-0.5 rounded-full bg-red-600/20 text-red-400 text-[10px] font-bold border border-red-500/30">
+                          {youtubeTracks.length} VIDEOS
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#a7a7a7]">
+                        Stream official music videos and listen via the official YouTube IFrame player
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {youtubeTracks.map(track => {
+                    const isThisTrackPlaying = currentTrack?.id === track.id && isPlaying;
+                    return (
+                      <div
+                        key={track.id}
+                        onClick={() => {
+                          playTrack(track, youtubeTracks);
+                          openVideo();
+                        }}
+                        className="group flex items-center justify-between p-3 rounded-xl bg-[#1a1212] hover:bg-[#281c1c] transition-all cursor-pointer border border-[#2d1e1e] hover:border-red-500/30"
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="relative w-16 h-12 rounded-lg overflow-hidden bg-[#241717] flex-shrink-0">
+                            <img
+                              src={track.coverUrl}
+                              alt={track.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              {isThisTrackPlaying ? (
+                                <Pause className="w-4 h-4 text-red-400 fill-red-400" />
+                              ) : (
+                                <Play className="w-4 h-4 text-white fill-white translate-x-0.2" />
+                              )}
+                            </div>
+                            <span className="absolute bottom-0.5 right-0.5 px-1 rounded bg-black/80 text-[8px] font-bold text-white">
+                              {formatTime(track.durationSeconds)}
+                            </span>
+                          </div>
+
+                          <div className="min-w-0 flex-1 pr-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-sm text-white truncate group-hover:text-red-400 transition-colors" title={track.title}>
+                                {track.title}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5 text-xs text-[#a7a7a7]">
+                              <span className="truncate">{track.channelName || track.artistName}</span>
+                              <span className="px-1 py-0.2 rounded bg-red-600/20 text-red-400 text-[8px] font-bold">YT</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            playTrack(track, youtubeTracks);
+                            openVideo();
+                          }}
+                          className="p-2 text-[#888] hover:text-white hover:bg-[#382323] rounded-full transition-colors ml-2"
+                          title="Watch Official Video"
+                        >
+                          <Video className="w-4 h-4 text-red-400" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

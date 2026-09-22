@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, Heart, Radio, Sparkles, Globe, RefreshCw, Music, Disc, Download, ShieldCheck } from 'lucide-react';
+import { Play, Pause, Heart, Radio, Sparkles, Globe, RefreshCw, Music, Disc, Download, ShieldCheck, Video } from 'lucide-react';
 import { TRACKS, PLAYLISTS, ARTISTS, ALBUMS } from '../data/mockCatalog';
 import { useAudio } from '../context/AudioContext';
 import { formatCompactNumber, formatTime } from '../utils/formatters';
 import { fetchRealSongs, fetchTopCharts } from '../services/realSongsService';
 import { searchFMATracks, downloadFMATrack } from '../services/fmaService';
+import { fetchTrendingYouTubeMusic, searchYouTubeMusic } from '../services/youtubeService';
 import { Track } from '../types';
 
 interface HomeViewProps {
@@ -35,10 +36,43 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onNavigateSearch,
   onNavigateFMA,
 }) => {
-  const { currentTrack, isPlaying, playTrack, togglePlayPause, addToQueue } = useAudio();
+  const { currentTrack, isPlaying, playTrack, togglePlayPause, addToQueue, openVideo } = useAudio();
   const [realSongs, setRealSongs] = useState<Track[]>([]);
   const [isLoadingReal, setIsLoadingReal] = useState(false);
   const [selectedArtistPreset, setSelectedArtistPreset] = useState('Top Global Hits');
+
+  // YouTube Music & Video state
+  const [youtubeTracks, setYoutubeTracks] = useState<Track[]>([]);
+  const [isLoadingYouTube, setIsLoadingYouTube] = useState(false);
+  const [selectedYTPreset, setSelectedYTPreset] = useState('Trending');
+
+  const YOUTUBE_PRESETS = [
+    { label: 'Trending', query: '' },
+    { label: 'Taylor Swift', query: 'Taylor Swift' },
+    { label: 'The Weeknd', query: 'The Weeknd' },
+    { label: 'Billie Eilish', query: 'Billie Eilish' },
+    { label: 'Kendrick Lamar', query: 'Kendrick Lamar' },
+    { label: 'Dua Lipa', query: 'Dua Lipa' },
+    { label: 'Sabrina Carpenter', query: 'Sabrina Carpenter' },
+  ];
+
+  const loadYouTubeTracks = async (query: string, label: string) => {
+    setIsLoadingYouTube(true);
+    setSelectedYTPreset(label);
+    try {
+      let tracks: Track[] = [];
+      if (!query) {
+        tracks = await fetchTrendingYouTubeMusic(12);
+      } else {
+        tracks = await searchYouTubeMusic(`${query} official music video`, 12);
+      }
+      setYoutubeTracks(tracks);
+    } catch (e) {
+      console.warn('Failed to load YouTube tracks:', e);
+    } finally {
+      setIsLoadingYouTube(false);
+    }
+  };
 
   // Free Music Archive state
   const [fmaTracks, setFmaTracks] = useState<Track[]>([]);
@@ -69,10 +103,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
     }
   };
 
-  // Load real songs and FMA tracks on mount
+  // Load real songs, FMA tracks, and YouTube tracks on mount
   useEffect(() => {
     loadRealSongs('Top Global Hits');
     loadFMATracks('electronic');
+    loadYouTubeTracks('', 'Trending');
   }, []);
 
   const loadRealSongs = async (preset: string) => {
@@ -440,6 +475,141 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   </div>
                   <span className="text-[11px] text-[#a09a90] truncate mt-0.5" title={track.artistName}>
                     {track.artistName}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* YouTube Music & Official Videos Section */}
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded bg-red-600 text-white font-bold text-[10px] tracking-wider">
+                YOUTUBE
+              </span>
+              <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight">
+                Official YouTube Music & Videos
+              </h2>
+            </div>
+            <p className="text-xs text-[#a7a7a7] mt-0.5">
+              Stream official music videos and live tracks with full video player support.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => loadYouTubeTracks('', selectedYTPreset)}
+              disabled={isLoadingYouTube}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#242424] hover:bg-[#303030] text-xs font-semibold text-white border border-[#333] transition-colors"
+              title="Refresh YouTube trending"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingYouTube ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+            {onNavigateSearch && (
+              <button
+                onClick={() => onNavigateSearch('YouTube')}
+                className="text-xs text-red-400 hover:text-red-300 font-semibold hover:underline"
+              >
+                Search More
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* YouTube Artist/Trend Presets */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs">
+          {YOUTUBE_PRESETS.map(preset => {
+            const isSelected = selectedYTPreset === preset.label;
+            return (
+              <button
+                key={preset.label}
+                onClick={() => loadYouTubeTracks(preset.query, preset.label)}
+                className={`px-3 py-1.5 rounded-full font-semibold whitespace-nowrap transition-all ${
+                  isSelected
+                    ? 'bg-red-600 text-white shadow-md font-bold'
+                    : 'bg-[#201515] text-[#e0cfcf] hover:bg-[#321e1e] hover:text-white border border-[#3c2424]'
+                }`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* YouTube Songs Grid */}
+        {isLoadingYouTube ? (
+          <div className="py-12 flex flex-col items-center justify-center gap-3">
+            <div className="w-8 h-8 border-3 border-red-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs text-[#a7a7a7] font-medium">
+              Fetching YouTube Music videos...
+            </span>
+          </div>
+        ) : youtubeTracks.length === 0 ? (
+          <div className="p-6 text-center text-xs text-[#888] bg-[#1a1414] rounded-xl border border-[#2e2020]">
+            Click Refresh above to load YouTube Music videos.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pt-1">
+            {youtubeTracks.slice(0, 12).map(track => {
+              const isThisTrackPlaying = currentTrack?.id === track.id && isPlaying;
+
+              return (
+                <div
+                  key={track.id}
+                  onClick={() => {
+                    playTrack(track, youtubeTracks);
+                    openVideo();
+                  }}
+                  className="group p-3 rounded-lg bg-[#181212] hover:bg-[#271b1b] transition-all duration-200 cursor-pointer flex flex-col relative border border-transparent hover:border-red-500/30 shadow-md"
+                >
+                  <div className="relative w-full aspect-video sm:aspect-square rounded-md overflow-hidden mb-2.5 bg-[#251818] shadow-md">
+                    <img
+                      src={track.coverUrl}
+                      alt={track.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      referrerPolicy="no-referrer"
+                    />
+
+                    <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-red-600/90 backdrop-blur-sm text-[8px] font-bold text-white uppercase tracking-wider">
+                      VIDEO
+                    </span>
+
+                    {/* Play trigger button */}
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        if (currentTrack?.id === track.id) {
+                          togglePlayPause();
+                        } else {
+                          playTrack(track, youtubeTracks);
+                          openVideo();
+                        }
+                      }}
+                      className={`absolute right-2 bottom-2 w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center shadow-xl transition-all duration-200 ${
+                        isThisTrackPlaying
+                          ? 'opacity-100 scale-100'
+                          : 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-105'
+                      }`}
+                      title={isThisTrackPlaying ? 'Pause' : 'Play YouTube Video'}
+                    >
+                      {isThisTrackPlaying ? (
+                        <Pause className="w-4 h-4 fill-white" />
+                      ) : (
+                        <Play className="w-4 h-4 fill-white translate-x-0.5" />
+                      )}
+                    </button>
+                  </div>
+
+                  <span className="font-semibold text-xs text-white truncate group-hover:text-red-400 transition-colors" title={track.title}>
+                    {track.title}
+                  </span>
+                  <span className="text-[11px] text-[#a7a7a7] truncate mt-0.5" title={track.artistName}>
+                    {track.channelName || track.artistName}
                   </span>
                 </div>
               );

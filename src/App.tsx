@@ -4,6 +4,7 @@ import { PartyProvider } from './context/PartyContext';
 import { Sidebar } from './components/Sidebar';
 import { Navbar } from './components/Navbar';
 import { PlayerBar } from './components/PlayerBar';
+import { YouTubePlayer } from './components/YouTubePlayer';
 import { QueueDrawer } from './components/QueueDrawer';
 import { LyricsModal } from './components/LyricsModal';
 import { PartyRoomModal } from './components/PartyRoomModal';
@@ -181,6 +182,7 @@ function MainApp() {
       </div>
 
       {/* 3. Persistent Global Audio Player Bar (never unmounts during route changes) */}
+      <YouTubePlayer />
       <PlayerBar
         onOpenQueue={() => setIsQueueOpen(true)}
         onOpenLyrics={() => setIsLyricsOpen(true)}

@@ -16,6 +16,8 @@ import {
   Maximize2,
   Radio,
   Download,
+  Video,
+  Loader2,
 } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
 import { useParty } from '../context/PartyContext';
@@ -56,6 +58,11 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
     toggleRepeat,
     isBuffering,
     bufferedPercent,
+    activeEngine,
+    isVideoOpen,
+    toggleVideo,
+    switchToYouTubeVideo,
+    isSearchingYouTube,
   } = useAudio();
 
   const { isInParty, isHost, room } = useParty();
@@ -117,7 +124,14 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
             >
               {currentTrack.title}
             </span>
-            {currentTrack.isFMA ? (
+            {currentTrack.youtubeId || currentTrack.isYouTube ? (
+              <span
+                className="px-1.5 py-0.2 rounded bg-red-600/25 text-red-400 text-[9px] font-bold border border-red-500/40 uppercase tracking-wider flex-shrink-0"
+                title="Official YouTube Music Track"
+              >
+                YOUTUBE
+              </span>
+            ) : currentTrack.isFMA ? (
               <span
                 className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold border border-amber-500/40 uppercase tracking-wider flex-shrink-0"
                 title="Free Music Archive (Full Length Track)"
@@ -291,6 +305,48 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
         >
           206 CHUNK
         </span>
+
+        {/* Official YouTube Music Video Toggle */}
+        <button
+          id="player-video-btn"
+          onClick={() => {
+            if (!currentTrack.youtubeId && !currentTrack.isYouTube) {
+              switchToYouTubeVideo();
+            } else {
+              toggleVideo();
+            }
+          }}
+          disabled={isSearchingYouTube}
+          className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-all ${
+            isVideoOpen
+              ? 'bg-red-600 text-white shadow-md'
+              : currentTrack.youtubeId || currentTrack.isYouTube
+              ? 'text-red-400 hover:text-white hover:bg-red-500/20'
+              : 'text-[#a7a7a7] hover:text-white hover:bg-[#282828]'
+          }`}
+          title={
+            currentTrack.youtubeId || currentTrack.isYouTube
+              ? isVideoOpen
+                ? 'Minimize Video Player'
+                : 'Watch Official YouTube Video'
+              : 'Switch to Official YouTube Music Video'
+          }
+        >
+          {isSearchingYouTube ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-red-400" />
+          ) : (
+            <Video className="w-3.5 h-3.5 text-red-500" />
+          )}
+          <span className="hidden xl:inline">
+            {isSearchingYouTube
+              ? 'Finding...'
+              : isVideoOpen
+              ? 'Video'
+              : currentTrack.youtubeId
+              ? 'Video'
+              : 'Watch'}
+          </span>
+        </button>
 
         {/* Synced Lyrics Toggle */}
         <button

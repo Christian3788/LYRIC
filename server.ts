@@ -5,6 +5,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { createServer as createViteServer } from 'vite';
 import { getOrCreateTrackBuffer } from './server/audioGenerator.js';
 import { fetchFMATracks, fetchFMAFeatured } from './server/fmaService.js';
+import { searchYouTubeMusic, getTrendingYouTubeMusic } from './server/youtubeService.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -649,6 +650,57 @@ app.get('/api/fma/download', async (req, res) => {
     console.error('FMA download proxy error:', err?.message || err);
     if (!res.headersSent) res.status(502).send('Error downloading track');
     else res.end();
+  }
+});
+
+// -------------------------------------------------------------
+// YOUTUBE MUSIC ENDPOINTS (For official YouTube IFrame Player playback)
+// -------------------------------------------------------------
+
+// Search YouTube for official music tracks / videos
+app.get('/api/youtube/search', async (req, res) => {
+  const query = String(req.query.q || '').trim();
+  const limit = Math.min(30, Math.max(1, parseInt(String(req.query.limit || '20'), 10)));
+
+  if (!query) {
+    res.status(400).json({ status: 'error', message: 'Query parameter q is required', tracks: [] });
+    return;
+  }
+
+  try {
+    const tracks = await searchYouTubeMusic(query, limit);
+    res.json({
+      status: 'ok',
+      query,
+      count: tracks.length,
+      tracks,
+    });
+  } catch (err: any) {
+    console.error('YouTube music search error:', err?.message || err);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to search YouTube music',
+      tracks: [],
+    });
+  }
+});
+
+// Trending YouTube Music Videos
+app.get('/api/youtube/trending', async (req, res) => {
+  try {
+    const tracks = await getTrendingYouTubeMusic();
+    res.json({
+      status: 'ok',
+      count: tracks.length,
+      tracks,
+    });
+  } catch (err: any) {
+    console.error('YouTube trending error:', err?.message || err);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch trending YouTube music',
+      tracks: [],
+    });
   }
 });
 

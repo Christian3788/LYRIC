@@ -1,6 +1,6 @@
 {
   "name": "DOODLE - Cloud Audio Streaming Platform",
-  "description": "Production-ready music streaming platform with Free Music Archive integration, HTTP 206 range audio streaming, persistent playback state, active queue management, and real-time party sync rooms.",
+  "description": "Production-ready music streaming platform with YouTube Music IFrame video streaming, Free Music Archive integration, HTTP 206 range audio streaming, synced lyrics, and real-time party sync rooms.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

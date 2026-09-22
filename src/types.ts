@@ -21,6 +21,10 @@ export interface Track {
   fmaUrl?: string;
   license?: string;
   downloadUrl?: string;
+  youtubeId?: string;
+  isYouTube?: boolean;
+  channelName?: string;
+  sourceType?: 'audio' | 'youtube';
 }
 
 export interface Artist {
