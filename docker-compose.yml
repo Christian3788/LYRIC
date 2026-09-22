@@ -1,0 +1,144 @@
+# ==============================================================================
+# Production Docker Compose for DOODLE Cloud Music Streaming Platform
+# Includes: PostgreSQL (pg_trgm + full-text search), Redis, MinIO (S3),
+#           Go Audio Streaming Worker (HTTP 206), and Next.js / Vite Web App
+# ==============================================================================
+version: '3.9'
+
+services:
+  # 1. PostgreSQL with pg_trgm and Full-Text Search
+  postgres:
+    image: postgres:16-alpine
+    container_name: doodle_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: doodle_user
+      POSTGRES_PASSWORD: doodle_secure_password
+      POSTGRES_DB: doodle_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U doodle_user -d doodle_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Redis (Hot track metadata, session tokens, playback sync state)
+  redis:
+    image: redis:7-alpine
+    container_name: doodle_redis
+    restart: always
+    command: redis-server --appendonly yes --requirepass redis_secure_password
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis_secure_password", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # 3. MinIO (S3-Compatible Object Storage for Audio Assets & Covers)
+  minio:
+    image: minio/minio:RELEASE.2024-01-16T16-07-38Z
+    container_name: doodle_minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadminpassword
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web Console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # MinIO Auto-bucket Provisioner
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set localminio http://minio:9000 minioadmin minioadminpassword;
+      /usr/bin/mc mb --ignore-existing localminio/doodle-audio-tracks;
+      /usr/bin/mc anonymous set download localminio/doodle-audio-tracks;
+      exit 0;
+      "
+
+  # 4. Go Audio Streaming Worker (High-Throughput HTTP 206 Partial Content)
+  stream-worker:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM golang:1.22-alpine AS builder
+        WORKDIR /app
+        COPY server/stream_worker.go .
+        RUN go mod init streamworker && \
+            go get github.com/minio/minio-go/v7 && \
+            CGO_ENABLED=0 GOOS=linux go build -o worker stream_worker.go
+        FROM alpine:latest
+        RUN apk --no-cache add ca-certificates curl
+        WORKDIR /root/
+        COPY --from=builder /app/worker .
+        EXPOSE 8080
+        CMD ["./worker"]
+    container_name: doodle_stream_worker
+    restart: always
+    environment:
+      PORT: "8080"
+      S3_ENDPOINT: "minio:9000"
+      S3_ACCESS_KEY: "minioadmin"
+      S3_SECRET_KEY: "minioadminpassword"
+      S3_BUCKET_NAME: "doodle-audio-tracks"
+    ports:
+      - "8080:8080"
+    depends_on:
+      minio:
+        condition: service_healthy
+
+  # 5. Full-Stack Web Application (Node / Express / React / Vite)
+  web:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM node:22-alpine
+        WORKDIR /app
+        COPY package*.json ./
+        RUN npm ci
+        COPY . .
+        RUN npm run build
+        EXPOSE 3000
+        CMD ["npm", "run", "start"]
+    container_name: doodle_web_app
+    restart: always
+    environment:
+      NODE_ENV: "production"
+      PORT: "3000"
+      DATABASE_URL: "postgresql://doodle_user:doodle_secure_password@postgres:5432/doodle_db"
+      REDIS_URL: "redis://:redis_secure_password@redis:6379"
+      STREAM_WORKER_URL: "http://stream-worker:8080"
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      stream-worker:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
