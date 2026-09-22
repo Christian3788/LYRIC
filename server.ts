@@ -4,6 +4,7 @@ import path from 'path';
 import { WebSocketServer, WebSocket } from 'ws';
 import { createServer as createViteServer } from 'vite';
 import { getOrCreateTrackBuffer } from './server/audioGenerator.js';
+import { fetchFMATracks, fetchFMAFeatured } from './server/fmaService.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -90,7 +91,7 @@ partyRooms.set('vibe-lounge', {
       id: 'm2',
       senderId: 'user_sarah',
       senderName: 'Sarah K.',
-      message: 'This synth bass drop is legendary 🔥',
+      message: 'This track is an absolute masterpiece 🔥',
       timestamp: Date.now() - 120000,
       isReaction: true,
     },
@@ -356,6 +357,299 @@ app.get('/api/search', (req, res) => {
     status: 'ok',
     message: 'Client-side reactive search is active with full catalog index',
   });
+});
+
+// -------------------------------------------------------------
+// REAL SONGS API & AUDIO STREAM PROXY
+// -------------------------------------------------------------
+
+// Helper to transform iTunes song result into DOODLE Track schema
+function mapItunesTrackToSchema(item: any) {
+  const highResCover = (item.artworkUrl100 || '')
+    .replace('100x100bb.jpg', '600x600bb.jpg')
+    .replace('100x100bb', '600x600bb');
+
+  const rawDuration = item.trackTimeMillis ? Math.round(item.trackTimeMillis / 1000) : 30;
+  // Previews are 30 seconds
+  const previewDuration = Math.min(rawDuration, 30);
+
+  return {
+    id: `real_${item.trackId}`,
+    title: item.trackName || 'Unknown Title',
+    artistId: `real_artist_${item.artistId || encodeURIComponent(item.artistName || 'unknown')}`,
+    artistName: item.artistName || 'Unknown Artist',
+    albumId: `real_album_${item.collectionId || 'single'}`,
+    albumTitle: item.collectionName || item.trackName || 'Single',
+    coverUrl: highResCover || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
+    audioUrl: `/api/stream/proxy?url=${encodeURIComponent(item.previewUrl)}`,
+    previewUrl: item.previewUrl,
+    durationSeconds: previewDuration,
+    genre: item.primaryGenreName || 'Pop',
+    playsCount: Math.floor(Math.random() * 40000000 + 10000000),
+    releaseYear: item.releaseDate ? new Date(item.releaseDate).getFullYear() : 2024,
+    bpm: 120,
+    audioFileSize: 1048576, // ~1MB AAC/M4A preview
+    isRealSong: true,
+  };
+}
+
+// 1. Audio stream proxy with HTTP 206 Partial Content range forwarding
+app.get('/api/stream/proxy', async (req, res) => {
+  const targetUrl = req.query.url as string;
+  if (!targetUrl || (!targetUrl.startsWith('https://') && !targetUrl.startsWith('http://'))) {
+    res.status(400).send('Valid HTTP/HTTPS audio URL required');
+    return;
+  }
+
+  try {
+    const fetchHeaders: Record<string, string> = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    };
+    if (req.headers.range) {
+      fetchHeaders['Range'] = String(req.headers.range);
+    }
+
+    const upstream = await fetch(targetUrl, { headers: fetchHeaders });
+
+    res.status(upstream.status);
+
+    // Forward crucial range & content headers
+    const forwardHeaders = [
+      'content-type',
+      'content-length',
+      'content-range',
+      'accept-ranges',
+      'last-modified',
+      'etag',
+    ];
+
+    forwardHeaders.forEach(h => {
+      const val = upstream.headers.get(h);
+      if (val) res.setHeader(h, val);
+    });
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+
+    if (!upstream.body) {
+      res.end();
+      return;
+    }
+
+    const reader = upstream.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(Buffer.from(value));
+    }
+    res.end();
+  } catch (err: any) {
+    console.error('Audio stream proxy error:', err?.message || err);
+    if (!res.headersSent) {
+      res.status(502).send('Error streaming real audio');
+    } else {
+      res.end();
+    }
+  }
+});
+
+// Cache for search results & charts
+const searchCache = new Map<string, { timestamp: number; tracks: any[] }>();
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+// 2. Real Songs Search endpoint: fetches genuine songs from Apple Music / iTunes
+app.get('/api/songs/search', async (req, res) => {
+  const query = String(req.query.q || '').trim();
+  const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit || '25'), 10)));
+
+  const searchTerm = query || 'top hits billboard';
+  const cacheKey = `${searchTerm.toLowerCase()}_${limit}`;
+
+  const cached = searchCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    res.json({
+      status: 'ok',
+      query: searchTerm,
+      count: cached.tracks.length,
+      tracks: cached.tracks,
+      cached: true,
+    });
+    return;
+  }
+
+  try {
+    const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(
+      searchTerm
+    )}&media=music&entity=song&limit=${limit}`;
+
+    const itunesRes = await fetch(itunesUrl);
+    if (!itunesRes.ok) {
+      throw new Error(`iTunes API responded with status ${itunesRes.status}`);
+    }
+
+    const data: any = await itunesRes.json();
+    const rawResults = data.results || [];
+
+    // Filter out items without an audio preview
+    const validTracks = rawResults
+      .filter((item: any) => item.previewUrl && item.trackName)
+      .map(mapItunesTrackToSchema);
+
+    searchCache.set(cacheKey, { timestamp: Date.now(), tracks: validTracks });
+
+    res.json({
+      status: 'ok',
+      query: searchTerm,
+      count: validTracks.length,
+      tracks: validTracks,
+    });
+  } catch (err: any) {
+    console.error('Failed to fetch real songs from iTunes:', err?.message || err);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch real songs',
+      error: err?.message || 'Network error',
+      tracks: [],
+    });
+  }
+});
+
+// 3. Real Songs Top Global Hits endpoint
+let topChartsCache: { timestamp: number; tracks: any[] } | null = null;
+
+app.get('/api/songs/charts', async (req, res) => {
+  if (topChartsCache && Date.now() - topChartsCache.timestamp < CACHE_TTL_MS) {
+    res.json({
+      status: 'ok',
+      count: topChartsCache.tracks.length,
+      tracks: topChartsCache.tracks,
+      cached: true,
+    });
+    return;
+  }
+
+  try {
+    // Search for global chart leaders
+    const chartTerms = ['billboard hot 100', 'the weeknd', 'taylor swift', 'billie eilish', 'kendrick lamar'];
+    const chosenTerm = chartTerms[Math.floor(Math.random() * chartTerms.length)];
+
+    const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(
+      'top hits 2024'
+    )}&media=music&entity=song&limit=30`;
+
+    const itunesRes = await fetch(itunesUrl);
+    const data: any = await itunesRes.json();
+    const rawResults = data.results || [];
+
+    const tracks = rawResults
+      .filter((item: any) => item.previewUrl && item.trackName)
+      .map(mapItunesTrackToSchema);
+
+    topChartsCache = { timestamp: Date.now(), tracks };
+
+    res.json({
+      status: 'ok',
+      count: tracks.length,
+      tracks,
+    });
+  } catch (err: any) {
+    console.error('Failed to fetch top charts:', err?.message || err);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch charts',
+      tracks: [],
+    });
+  }
+});
+
+// -------------------------------------------------------------
+// FREE MUSIC ARCHIVE (FMA) ENDPOINTS
+// -------------------------------------------------------------
+
+// 1. Search Free Music Archive tracks (full-length Creative Commons music)
+app.get('/api/fma/search', async (req, res) => {
+  const query = String(req.query.q || '').trim() || 'electronic';
+  const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit || '25'), 10)));
+
+  try {
+    const tracks = await fetchFMATracks(query, limit);
+    res.json({
+      status: 'ok',
+      source: 'Free Music Archive (freemusicarchive.org)',
+      query,
+      count: tracks.length,
+      tracks,
+    });
+  } catch (err: any) {
+    console.error('FMA search error:', err?.message || err);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to search Free Music Archive',
+      tracks: [],
+    });
+  }
+});
+
+// 2. Curated Featured Free Music Archive tracks across popular genres
+app.get('/api/fma/featured', async (req, res) => {
+  try {
+    const tracks = await fetchFMAFeatured();
+    res.json({
+      status: 'ok',
+      source: 'Free Music Archive (freemusicarchive.org)',
+      count: tracks.length,
+      tracks,
+    });
+  } catch (err: any) {
+    console.error('FMA featured error:', err?.message || err);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch featured Free Music Archive tracks',
+      tracks: [],
+    });
+  }
+});
+
+// 3. Direct MP3 Download for Free Music Archive tracks
+app.get('/api/fma/download', async (req, res) => {
+  const targetUrl = req.query.url as string;
+  const title = String(req.query.title || 'fma-track').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+  if (!targetUrl || (!targetUrl.startsWith('https://') && !targetUrl.startsWith('http://'))) {
+    res.status(400).send('Valid audio URL required');
+    return;
+  }
+
+  try {
+    const upstream = await fetch(targetUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+      redirect: 'follow',
+    });
+
+    if (!upstream.ok || !upstream.body) {
+      res.status(upstream.status).send('Unable to download track from source');
+      return;
+    }
+
+    res.setHeader('Content-Disposition', `attachment; filename="${title}.mp3"`);
+    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'audio/mpeg');
+    const len = upstream.headers.get('content-length');
+    if (len) res.setHeader('Content-Length', len);
+
+    const reader = upstream.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(Buffer.from(value));
+    }
+    res.end();
+  } catch (err: any) {
+    console.error('FMA download proxy error:', err?.message || err);
+    if (!res.headersSent) res.status(502).send('Error downloading track');
+    else res.end();
+  }
 });
 
 // Health check endpoint

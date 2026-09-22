@@ -15,10 +15,12 @@ import {
   Heart,
   Maximize2,
   Radio,
+  Download,
 } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
 import { useParty } from '../context/PartyContext';
 import { formatTime } from '../utils/formatters';
+import { downloadFMATrack } from '../services/fmaService';
 
 interface PlayerBarProps {
   onOpenQueue: () => void;
@@ -108,12 +110,26 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
         </div>
 
         <div className="flex flex-col min-w-0 pr-2">
-          <span
-            className="text-sm font-semibold text-white truncate hover:underline cursor-pointer"
-            onClick={() => onNavigateAlbum && onNavigateAlbum(currentTrack.albumId)}
-          >
-            {currentTrack.title}
-          </span>
+          <div className="flex items-center gap-1.5 truncate">
+            <span
+              className="text-sm font-semibold text-white truncate hover:underline cursor-pointer"
+              onClick={() => onNavigateAlbum && onNavigateAlbum(currentTrack.albumId)}
+            >
+              {currentTrack.title}
+            </span>
+            {currentTrack.isFMA ? (
+              <span
+                className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold border border-amber-500/40 uppercase tracking-wider flex-shrink-0"
+                title="Free Music Archive (Full Length Track)"
+              >
+                FMA
+              </span>
+            ) : currentTrack.isRealSong ? (
+              <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-bold border border-emerald-500/40 uppercase tracking-wider flex-shrink-0">
+                REAL
+              </span>
+            ) : null}
+          </div>
           <span
             className="text-xs text-[#a7a7a7] truncate hover:text-white hover:underline cursor-pointer"
             onClick={() => onNavigateArtist && onNavigateArtist(currentTrack.artistId)}
@@ -132,6 +148,17 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
         >
           <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
         </button>
+
+        {currentTrack.isFMA && (
+          <button
+            id="player-fma-download-btn"
+            onClick={() => downloadFMATrack(currentTrack)}
+            className="p-1.5 text-amber-400 hover:text-amber-300 transition-transform active:scale-90"
+            title="Download full-length MP3 from Free Music Archive"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+        )}
 
         {isInParty && (
           <div

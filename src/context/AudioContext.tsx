@@ -237,6 +237,20 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setProgress(0);
       setDuration(track.durationSeconds || 60);
 
+      // Handle stream fallback if proxy encounters transient network error
+      const handleStreamError = () => {
+        if (track.previewUrl && audio.src !== track.previewUrl) {
+          console.warn('Proxy stream error, falling back to direct previewUrl:', track.previewUrl);
+          audio.removeEventListener('error', handleStreamError);
+          audio.src = track.previewUrl;
+          audio.load();
+          if (autoPlay) {
+            audio.play().catch(e => console.warn('Fallback playback caught:', e));
+          }
+        }
+      };
+      audio.addEventListener('error', handleStreamError, { once: true });
+
       if (autoPlay) {
         setIsBuffering(true);
         audio

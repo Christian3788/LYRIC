@@ -23,10 +23,10 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
   if (!isOpen || !currentTrack) return null;
 
   const lyrics = currentTrack.lyrics || [
-    { time: 0, text: `♪ Instrumental vibes for ${currentTrack.title} ♪` },
-    { time: 15, text: `Feel the rhythm and frequency wave...` },
-    { time: 30, text: `High-fidelity 44.1kHz stereo audio stream` },
-    { time: 45, text: `♪ (Solo & Outro) ♪` },
+    { time: 0, text: `♪ ${currentTrack.title} ♪` },
+    { time: 6, text: `Performed by ${currentTrack.artistName}` },
+    { time: 15, text: `High-fidelity genuine audio playback` },
+    { time: 24, text: `♪ (Vocal performance & melody) ♪` },
   ];
 
   // Find active line index

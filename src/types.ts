@@ -14,6 +14,13 @@ export interface Track {
   bpm?: number;
   audioFileSize?: number;
   lyrics?: { time: number; text: string }[];
+  isRealSong?: boolean;
+  previewUrl?: string;
+  isFMA?: boolean;
+  fmaId?: string;
+  fmaUrl?: string;
+  license?: string;
+  downloadUrl?: string;
 }
 
 export interface Artist {

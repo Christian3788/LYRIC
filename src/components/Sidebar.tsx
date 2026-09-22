@@ -74,6 +74,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
 
           <button
+            id="nav-fma-btn"
+            onClick={() => onNavigate('fma')}
+            className={`flex items-center justify-between px-3 py-2.5 rounded-md font-semibold text-sm transition-colors ${
+              currentView === 'fma' ? 'text-white bg-[#282828]' : 'hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-4">
+              <Disc className="w-5 h-5 text-amber-400" />
+              <span>Free Music Archive</span>
+            </div>
+            <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded font-mono">
+              FMA
+            </span>
+          </button>
+
+          <button
             id="nav-party-btn"
             onClick={onOpenParty}
             className="flex items-center justify-between px-3 py-2.5 rounded-md font-semibold text-sm transition-colors text-emerald-400 hover:text-emerald-300 hover:bg-[#1a2e22]/50"

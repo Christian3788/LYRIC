@@ -13,11 +13,17 @@ import {
   Sparkles,
   Clock,
   Compass,
+  Globe,
+  RefreshCw,
+  Zap,
+  Download,
 } from 'lucide-react';
 import { TRACKS, ARTISTS, ALBUMS, PLAYLISTS, GENRES } from '../data/mockCatalog';
 import { useAudio } from '../context/AudioContext';
 import { formatTime } from '../utils/formatters';
 import { Track } from '../types';
+import { fetchRealSongs, fetchTopCharts } from '../services/realSongsService';
+import { searchFMATracks, downloadFMATrack } from '../services/fmaService';
 
 interface SearchViewProps {
   searchQuery: string;
@@ -28,16 +34,19 @@ interface SearchViewProps {
 }
 
 const TRENDING_SUGGESTIONS = [
-  '🔥 Top Hits',
+  'Taylor Swift',
+  'The Weeknd',
+  'Billie Eilish',
+  'Kendrick Lamar',
+  'Dua Lipa',
+  'Drake',
+  'Coldplay',
+  'Post Malone',
+  'Queen',
+  'Sabrina Carpenter',
   'Pop',
   'Hip-Hop',
-  'Lo-Fi Beats',
   'Synthwave',
-  'R&B',
-  'Deep House',
-  'Alternative Rock',
-  'Afrobeats',
-  'Acoustic Indie',
 ];
 
 export const SearchView: React.FC<SearchViewProps> = ({
@@ -48,8 +57,14 @@ export const SearchView: React.FC<SearchViewProps> = ({
   onNavigatePlaylist,
 }) => {
   const { currentTrack, isPlaying, playTrack, togglePlayPause, addToQueue } = useAudio();
-  const [filterType, setFilterType] = useState<'all' | 'tracks' | 'artists' | 'albums' | 'playlists'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'fma' | 'real' | 'tracks' | 'artists' | 'albums' | 'playlists'>('all');
   const [addedTrackId, setAddedTrackId] = useState<string | null>(null);
+  const [realTracks, setRealTracks] = useState<Track[]>([]);
+  const [isLoadingReal, setIsLoadingReal] = useState<boolean>(false);
+  const [fmaTracks, setFmaTracks] = useState<Track[]>([]);
+  const [isLoadingFMA, setIsLoadingFMA] = useState<boolean>(false);
+  const [downloadingFMAId, setDownloadingFMAId] = useState<string | null>(null);
+  const [hasManuallyFetched, setHasManuallyFetched] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus input when landing on Search view if empty
@@ -58,6 +73,87 @@ export const SearchView: React.FC<SearchViewProps> = ({
       inputRef.current.focus();
     }
   }, []);
+
+  // Debounced live fetch of real songs and Free Music Archive tracks via proxy
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      if (!hasManuallyFetched) {
+        setRealTracks([]);
+        setFmaTracks([]);
+      }
+      return;
+    }
+
+    let isMounted = true;
+    setIsLoadingReal(true);
+    setIsLoadingFMA(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const [fetchedReal, fetchedFMA] = await Promise.allSettled([
+          fetchRealSongs(trimmed, 25),
+          searchFMATracks(trimmed, 20),
+        ]);
+
+        if (isMounted) {
+          if (fetchedReal.status === 'fulfilled') {
+            setRealTracks(fetchedReal.value);
+          }
+          if (fetchedFMA.status === 'fulfilled') {
+            setFmaTracks(fetchedFMA.value);
+          }
+          setIsLoadingReal(false);
+          setIsLoadingFMA(false);
+        }
+      } catch (err) {
+        console.warn('Live search caught:', err);
+        if (isMounted) {
+          setIsLoadingReal(false);
+          setIsLoadingFMA(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [searchQuery, hasManuallyFetched]);
+
+  // Handle manual "Fetch Real Songs" click
+  const handleFetchTopRealHits = async () => {
+    setIsLoadingReal(true);
+    setHasManuallyFetched(true);
+    try {
+      const topHits = await fetchTopCharts();
+      setRealTracks(topHits);
+      if (!searchQuery) {
+        onSearchChange('Top Hits');
+      }
+    } catch (e) {
+      console.warn('Error fetching top hits:', e);
+    } finally {
+      setIsLoadingReal(false);
+    }
+  };
+
+  // Handle manual "Fetch FMA Music" click
+  const handleFetchFMATracks = async () => {
+    setIsLoadingFMA(true);
+    setHasManuallyFetched(true);
+    try {
+      const fmaResults = await searchFMATracks(searchQuery.trim() || 'electronic', 24);
+      setFmaTracks(fmaResults);
+      if (!searchQuery) {
+        onSearchChange('electronic');
+      }
+    } catch (e) {
+      console.warn('Error fetching FMA tracks:', e);
+    } finally {
+      setIsLoadingFMA(false);
+    }
+  };
 
   const handleAddToQueue = (e: React.MouseEvent, track: Track) => {
     e.stopPropagation();
@@ -68,7 +164,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
     }, 1800);
   };
 
-  // Smart multi-keyword query parsing
+  // Smart multi-keyword query parsing for local catalog
   const cleanQuery = searchQuery.trim().toLowerCase();
   const queryWords = useMemo(
     () => cleanQuery.split(/\s+/).filter(w => w.length > 0),
@@ -84,7 +180,6 @@ export const SearchView: React.FC<SearchViewProps> = ({
       const genreLower = (t.genre || '').toLowerCase();
       const lyricsJoined = (t.lyrics || []).map(l => l.text.toLowerCase()).join(' ');
 
-      // Direct full query substring match
       if (
         titleLower.includes(cleanQuery) ||
         artistLower.includes(cleanQuery) ||
@@ -95,7 +190,6 @@ export const SearchView: React.FC<SearchViewProps> = ({
         return true;
       }
 
-      // Multi-word match: every word in the query must be found in at least one attribute
       return queryWords.every(
         word =>
           titleLower.includes(word) ||
@@ -164,40 +258,76 @@ export const SearchView: React.FC<SearchViewProps> = ({
   }, [cleanQuery, queryWords]);
 
   const hasResults =
+    fmaTracks.length > 0 ||
+    realTracks.length > 0 ||
     matchingTracks.length > 0 ||
     matchingArtists.length > 0 ||
     matchingAlbums.length > 0 ||
     matchingPlaylists.length > 0;
 
   const handleSuggestionClick = (suggestion: string) => {
-    const queryTerm = suggestion.replace('🔥 ', '');
-    onSearchChange(queryTerm);
+    onSearchChange(suggestion);
   };
+
+  // Determine top highlight track
+  const topResultTrack =
+    filterType === 'fma'
+      ? fmaTracks[0]
+      : fmaTracks[0] || realTracks[0] || matchingTracks[0];
 
   return (
     <div id="search-view" className="p-6 md:p-8 space-y-6 pb-24 max-w-7xl mx-auto">
       {/* 1. Main Search Header & Primary Input Bar */}
       <div className="space-y-4">
-        <div className="relative max-w-2xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#a7a7a7]" />
-          <input
-            ref={inputRef}
-            id="search-view-input"
-            type="text"
-            value={searchQuery}
-            onChange={e => onSearchChange(e.target.value)}
-            placeholder="Search songs, artists, albums, or lyrics..."
-            className="w-full bg-[#242424] hover:bg-[#2b2b2b] focus:bg-[#2e2e2e] text-base md:text-lg text-white placeholder-[#7e7e7e] pl-12 pr-11 py-3.5 rounded-full outline-none border border-transparent focus:border-white/40 shadow-xl transition-all"
-          />
-          {searchQuery && (
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-2xl">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#a7a7a7]" />
+            <input
+              ref={inputRef}
+              id="search-view-input"
+              type="text"
+              value={searchQuery}
+              onChange={e => onSearchChange(e.target.value)}
+              placeholder="Search real songs, Free Music Archive, artists (e.g. Taylor Swift, electronic, jazz)..."
+              className="w-full bg-[#242424] hover:bg-[#2b2b2b] focus:bg-[#2e2e2e] text-base md:text-lg text-white placeholder-[#7e7e7e] pl-12 pr-11 py-3.5 rounded-full outline-none border border-transparent focus:border-emerald-500/50 shadow-xl transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  onSearchChange('');
+                  setRealTracks([]);
+                  setFmaTracks([]);
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#383838] hover:bg-[#484848] text-white flex items-center justify-center transition-colors"
+                title="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Quick Actions: Fetch Real Songs & Free Music Archive */}
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <button
-              onClick={() => onSearchChange('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#383838] hover:bg-[#484848] text-white flex items-center justify-center transition-colors"
-              title="Clear search"
+              id="fetch-fma-songs-btn"
+              onClick={handleFetchFMATracks}
+              disabled={isLoadingFMA}
+              className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-full bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs sm:text-sm shadow-lg hover:shadow-amber-500/20 active:scale-95 transition-all flex-1 sm:flex-initial whitespace-nowrap"
             >
-              <X className="w-3.5 h-3.5" />
+              <Disc className={`w-4 h-4 ${isLoadingFMA ? 'animate-spin' : ''}`} />
+              <span>{isLoadingFMA ? 'Fetching FMA...' : 'Free Music Archive'}</span>
             </button>
-          )}
+
+            <button
+              id="fetch-real-songs-btn"
+              onClick={handleFetchTopRealHits}
+              disabled={isLoadingReal}
+              className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs sm:text-sm shadow-lg hover:shadow-emerald-500/20 active:scale-95 transition-all flex-1 sm:flex-initial whitespace-nowrap"
+            >
+              <Globe className={`w-4 h-4 ${isLoadingReal ? 'animate-spin' : ''}`} />
+              <span>{isLoadingReal ? 'Fetching Songs...' : 'Fetch Global Hits'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Quick Suggestion Chips */}
@@ -207,8 +337,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
             Try:
           </span>
           {TRENDING_SUGGESTIONS.map(s => {
-            const rawTerm = s.replace('🔥 ', '');
-            const isActive = cleanQuery === rawTerm.toLowerCase();
+            const isActive = cleanQuery === s.toLowerCase();
             return (
               <button
                 key={s}
@@ -226,15 +355,17 @@ export const SearchView: React.FC<SearchViewProps> = ({
         </div>
       </div>
 
-      {/* 2. Filter Pills (when query exists) */}
-      {cleanQuery && hasResults && (
+      {/* 2. Filter Pills (when query or real songs exist) */}
+      {(cleanQuery || realTracks.length > 0 || fmaTracks.length > 0) && hasResults && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-[#242424] pt-2">
           {[
             { id: 'all', label: 'All' },
-            { id: 'tracks', label: `Songs (${matchingTracks.length})` },
-            { id: 'artists', label: `Artists (${matchingArtists.length})` },
-            { id: 'albums', label: `Albums (${matchingAlbums.length})` },
-            { id: 'playlists', label: `Playlists (${matchingPlaylists.length})` },
+            ...(fmaTracks.length > 0 ? [{ id: 'fma', label: `Free Music Archive (${fmaTracks.length})` }] : []),
+            ...(realTracks.length > 0 ? [{ id: 'real', label: `Global Hits (${realTracks.length})` }] : []),
+            ...(matchingTracks.length > 0 ? [{ id: 'tracks', label: `Hits & Anthems (${matchingTracks.length})` }] : []),
+            ...(matchingArtists.length > 0 ? [{ id: 'artists', label: `Artists (${matchingArtists.length})` }] : []),
+            ...(matchingAlbums.length > 0 ? [{ id: 'albums', label: `Albums (${matchingAlbums.length})` }] : []),
+            ...(matchingPlaylists.length > 0 ? [{ id: 'playlists', label: `Playlists (${matchingPlaylists.length})` }] : []),
           ].map(tab => (
             <button
               key={tab.id}
@@ -252,140 +383,156 @@ export const SearchView: React.FC<SearchViewProps> = ({
       )}
 
       {/* 3. Search Results */}
-      {cleanQuery ? (
-        !hasResults ? (
+      {cleanQuery || realTracks.length > 0 ? (
+        !hasResults && !isLoadingReal ? (
           <div className="py-16 text-center space-y-4 bg-[#161616] rounded-2xl p-8 border border-[#242424]">
             <div className="w-14 h-14 rounded-full bg-[#242424] flex items-center justify-center mx-auto text-[#888]">
               <Search className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-bold text-white">No results found for "{searchQuery}"</h3>
+            <h3 className="text-xl font-bold text-white">No songs found for "{searchQuery}"</h3>
             <p className="text-sm text-[#a7a7a7] max-w-md mx-auto">
-              Please check your spelling, try fewer keywords, or click any popular genre or trending pill above.
+              Click the "Fetch Real Songs" button below to pull genuine recordings from the global music catalog.
             </p>
             <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
               <button
-                onClick={() => onSearchChange('Pop')}
-                className="px-3.5 py-1.5 rounded-full bg-[#242424] hover:bg-[#333] text-xs font-semibold text-white transition-colors"
+                onClick={handleFetchTopRealHits}
+                className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-400 text-xs font-bold text-black transition-colors"
               >
-                Search Pop
+                Fetch Real Global Hits
               </button>
               <button
-                onClick={() => onSearchChange('Lo-Fi Beats')}
+                onClick={() => onSearchChange('Taylor Swift')}
                 className="px-3.5 py-1.5 rounded-full bg-[#242424] hover:bg-[#333] text-xs font-semibold text-white transition-colors"
               >
-                Search Lo-Fi Beats
+                Search Taylor Swift
               </button>
               <button
-                onClick={() => onSearchChange('Synthwave')}
+                onClick={() => onSearchChange('The Weeknd')}
                 className="px-3.5 py-1.5 rounded-full bg-[#242424] hover:bg-[#333] text-xs font-semibold text-white transition-colors"
               >
-                Search Synthwave
-              </button>
-              <button
-                onClick={() => onSearchChange('')}
-                className="px-3.5 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-xs font-bold text-black transition-colors"
-              >
-                Browse All Genres
+                Search The Weeknd
               </button>
             </div>
           </div>
         ) : (
           <div className="space-y-8">
+            {/* Loading Indicator */}
+            {isLoadingReal && (
+              <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium py-1">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Searching global music database for real audio streams...</span>
+              </div>
+            )}
+
             {/* Top Result + Songs Section */}
-            {(filterType === 'all' || filterType === 'tracks') && matchingTracks.length > 0 && (
+            {(filterType === 'all' || filterType === 'real' || filterType === 'tracks') && topResultTrack && (
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                 {/* Top Result Card */}
-                {matchingTracks[0] && (
-                  <div className="lg:col-span-2 space-y-3">
-                    <h2 className="text-xl font-bold text-white tracking-tight">Top Result</h2>
-                    <div
-                      onClick={() => playTrack(matchingTracks[0], matchingTracks)}
-                      className="group p-5 rounded-2xl bg-[#181818] hover:bg-[#222222] transition-all cursor-pointer relative flex flex-col justify-between h-64 border border-[#242424] shadow-lg"
-                    >
-                      <div className="flex items-start gap-4">
-                        <img
-                          src={matchingTracks[0].coverUrl}
-                          alt={matchingTracks[0].title}
-                          className="w-24 h-24 rounded-xl object-cover shadow-xl flex-shrink-0"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="min-w-0">
-                          <span className="px-2.5 py-1 rounded-full bg-[#282828] text-[10px] font-bold uppercase tracking-wider text-emerald-400 inline-block mb-1.5">
-                            {matchingTracks[0].genre || 'Song'}
-                          </span>
-                          <h3 className="text-2xl font-extrabold text-white truncate group-hover:text-emerald-400 transition-colors">
-                            {matchingTracks[0].title}
-                          </h3>
-                          <div className="text-xs text-[#a7a7a7] mt-1 truncate">
-                            By{' '}
-                            <span
-                              className="text-white hover:underline cursor-pointer"
-                              onClick={e => {
-                                e.stopPropagation();
-                                onNavigateArtist(matchingTracks[0].artistId);
-                              }}
-                            >
-                              {matchingTracks[0].artistName}
+                <div className="lg:col-span-2 space-y-3">
+                  <h2 className="text-xl font-bold text-white tracking-tight">Top Result</h2>
+                  <div
+                    onClick={() => playTrack(topResultTrack, realTracks.length > 0 ? realTracks : matchingTracks)}
+                    className="group p-5 rounded-2xl bg-[#181818] hover:bg-[#222222] transition-all cursor-pointer relative flex flex-col justify-between h-64 border border-[#242424] shadow-lg"
+                  >
+                    <div className="flex items-start gap-4">
+                      <img
+                        src={topResultTrack.coverUrl}
+                        alt={topResultTrack.title}
+                        className="w-24 h-24 rounded-xl object-cover shadow-xl flex-shrink-0"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          {topResultTrack.isRealSong ? (
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/25 text-[10px] font-bold uppercase tracking-wider text-emerald-300 border border-emerald-500/40">
+                              Real Song
                             </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full bg-[#282828] text-[10px] font-bold uppercase tracking-wider text-[#d4d4d4]">
+                              {topResultTrack.genre || 'Original'}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-2xl font-extrabold text-white truncate group-hover:text-emerald-400 transition-colors">
+                          {topResultTrack.title}
+                        </h3>
+                        <div className="text-xs text-[#a7a7a7] mt-1 truncate">
+                          By <span className="text-white">{topResultTrack.artistName}</span>
+                        </div>
+                        {topResultTrack.albumTitle && (
+                          <div className="text-[11px] text-[#777] truncate mt-0.5">
+                            {topResultTrack.albumTitle}
                           </div>
-                        </div>
+                        )}
                       </div>
+                    </div>
 
-                      <div className="flex items-center justify-between mt-auto pt-4 border-t border-[#242424]/60">
-                        <span className="text-xs text-[#888] font-mono">
-                          Duration: {formatTime(matchingTracks[0].durationSeconds)}
-                        </span>
+                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-[#242424]/60">
+                      <span className="text-xs text-[#888] font-mono">
+                        {topResultTrack.isRealSong ? 'Audio Preview' : 'Full Audio'} • {formatTime(topResultTrack.durationSeconds)}
+                      </span>
 
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={e => handleAddToQueue(e, matchingTracks[0])}
-                            className="w-10 h-10 rounded-full bg-[#2a2a2a] hover:bg-[#383838] text-white flex items-center justify-center transition-colors"
-                            title="Add to queue"
-                          >
-                            {addedTrackId === matchingTracks[0].id ? (
-                              <Check className="w-4 h-4 text-emerald-400" />
-                            ) : (
-                              <Plus className="w-4 h-4" />
-                            )}
-                          </button>
-                          <button
-                            onClick={e => {
-                              e.stopPropagation();
-                              playTrack(matchingTracks[0], matchingTracks);
-                            }}
-                            className="w-12 h-12 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center shadow-xl group-hover:scale-105 active:scale-95 transition-all"
-                            title="Play song"
-                          >
-                            {currentTrack?.id === matchingTracks[0].id && isPlaying ? (
-                              <Pause className="w-5 h-5 fill-black" />
-                            ) : (
-                              <Play className="w-5 h-5 fill-black translate-x-0.5" />
-                            )}
-                          </button>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={e => handleAddToQueue(e, topResultTrack)}
+                          className="w-10 h-10 rounded-full bg-[#2a2a2a] hover:bg-[#383838] text-white flex items-center justify-center transition-colors"
+                          title="Add to queue"
+                        >
+                          {addedTrackId === topResultTrack.id ? (
+                            <Check className="w-4 h-4 text-emerald-400" />
+                          ) : (
+                            <Plus className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            playTrack(topResultTrack, realTracks.length > 0 ? realTracks : matchingTracks);
+                          }}
+                          className="w-12 h-12 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center shadow-xl group-hover:scale-105 active:scale-95 transition-all"
+                          title="Play song"
+                        >
+                          {currentTrack?.id === topResultTrack.id && isPlaying ? (
+                            <Pause className="w-5 h-5 fill-black" />
+                          ) : (
+                            <Play className="w-5 h-5 fill-black translate-x-0.5" />
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
 
-                {/* Songs List */}
-                <div className={`${matchingTracks[0] ? 'lg:col-span-3' : 'lg:col-span-5'} space-y-3`}>
+                {/* Real Songs List */}
+                <div className="lg:col-span-3 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-white tracking-tight">Songs</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-xl font-bold text-white tracking-tight">
+                        {realTracks.length > 0 ? 'Real Songs' : 'Songs'}
+                      </h2>
+                      {realTracks.length > 0 && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
+                          HQ AUDIO
+                        </span>
+                      )}
+                    </div>
                     <span className="text-xs text-[#888]">
-                      {matchingTracks.length} song{matchingTracks.length === 1 ? '' : 's'} found
+                      {(realTracks.length > 0 ? realTracks : matchingTracks).length} track(s)
                     </span>
                   </div>
 
                   <div className="space-y-1">
-                    {(filterType === 'tracks' ? matchingTracks : matchingTracks.slice(0, 5)).map(
-                      (track, idx) => {
+                    {(realTracks.length > 0 ? realTracks : matchingTracks)
+                      .slice(0, filterType === 'real' || filterType === 'tracks' ? 50 : 6)
+                      .map((track, idx) => {
                         const isThisPlaying = currentTrack?.id === track.id && isPlaying;
                         const isThisCurrent = currentTrack?.id === track.id;
+                        const activeList = realTracks.length > 0 ? realTracks : matchingTracks;
+
                         return (
                           <div
                             key={track.id}
-                            onClick={() => playTrack(track, matchingTracks)}
+                            onClick={() => playTrack(track, activeList)}
                             className="group flex items-center justify-between p-2.5 rounded-xl hover:bg-[#202020] cursor-pointer transition-colors"
                           >
                             <div className="flex items-center gap-3.5 min-w-0 flex-1">
@@ -396,7 +543,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
                                 <Play className="w-3.5 h-3.5 fill-white text-white" />
                               </div>
 
-                              <div className="relative w-11 h-11 rounded-lg overflow-hidden flex-shrink-0 shadow">
+                              <div className="relative w-11 h-11 rounded-lg overflow-hidden flex-shrink-0 shadow bg-[#222]">
                                 <img
                                   src={track.coverUrl}
                                   alt={track.title}
@@ -415,33 +562,28 @@ export const SearchView: React.FC<SearchViewProps> = ({
                               </div>
 
                               <div className="min-w-0 flex-1 pr-2">
-                                <div
-                                  className={`text-sm font-semibold truncate ${
-                                    isThisCurrent ? 'text-emerald-400' : 'text-white'
-                                  }`}
-                                >
-                                  {track.title}
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <span
+                                    className={`text-sm font-semibold truncate ${
+                                      isThisCurrent ? 'text-emerald-400' : 'text-white'
+                                    }`}
+                                  >
+                                    {track.title}
+                                  </span>
+                                  {track.isRealSong && (
+                                    <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-bold uppercase tracking-wider flex-shrink-0">
+                                      REAL
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="text-xs text-[#a7a7a7] truncate flex items-center gap-1.5 mt-0.5">
-                                  <span
-                                    className="hover:underline hover:text-white"
-                                    onClick={e => {
-                                      e.stopPropagation();
-                                      onNavigateArtist(track.artistId);
-                                    }}
-                                  >
+                                  <span className="hover:text-white truncate">
                                     {track.artistName}
                                   </span>
                                   {track.albumTitle && (
                                     <>
                                       <span>•</span>
-                                      <span
-                                        className="hover:underline hover:text-white truncate"
-                                        onClick={e => {
-                                          e.stopPropagation();
-                                          if (track.albumId) onNavigateAlbum(track.albumId);
-                                        }}
-                                      >
+                                      <span className="hover:text-white truncate text-[#777]">
                                         {track.albumTitle}
                                       </span>
                                     </>
@@ -468,9 +610,144 @@ export const SearchView: React.FC<SearchViewProps> = ({
                             </div>
                           </div>
                         );
-                      }
-                    )}
+                      })}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Free Music Archive Section */}
+            {(filterType === 'all' || filterType === 'fma') && fmaTracks.length > 0 && (
+              <div className="space-y-4 pt-4 border-t border-[#242424]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+                      <Disc className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-bold text-white tracking-tight">Free Music Archive</h2>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
+                          {fmaTracks.length} FULL TRACKS
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#a09a90]">
+                        Full-length downloadable songs with Creative Commons licensing
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {fmaTracks.map(track => {
+                    const isThisTrackPlaying = currentTrack?.id === track.id && isPlaying;
+                    return (
+                      <div
+                        key={track.id}
+                        onClick={() => playTrack(track, fmaTracks)}
+                        className="group flex items-center justify-between p-3 rounded-xl bg-[#191715] hover:bg-[#25221f] transition-all cursor-pointer border border-[#2b2621] hover:border-amber-500/30"
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-[#24201c] flex-shrink-0">
+                            <img
+                              src={track.coverUrl}
+                              alt={track.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              {isThisTrackPlaying ? (
+                                <Pause className="w-4 h-4 text-amber-400 fill-amber-400" />
+                              ) : (
+                                <Play className="w-4 h-4 text-white fill-white translate-x-0.2" />
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="min-w-0 flex-1 pr-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-semibold text-white truncate group-hover:text-amber-400 transition-colors">
+                                {track.title}
+                              </span>
+                              <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[8px] font-bold uppercase tracking-wider flex-shrink-0">
+                                FMA
+                              </span>
+                            </div>
+                            <div className="text-xs text-[#a09a90] truncate mt-0.5">
+                              {track.artistName}
+                            </div>
+                            {track.license && (
+                              <div className="text-[10px] text-amber-400/70 font-mono truncate">
+                                {track.license}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              setDownloadingFMAId(track.id);
+                              downloadFMATrack(track);
+                              setTimeout(() => setDownloadingFMAId(null), 2000);
+                            }}
+                            className="p-1.5 text-[#888] hover:text-amber-400 transition-colors"
+                            title="Download full MP3"
+                          >
+                            <Download className={`w-4 h-4 ${downloadingFMAId === track.id ? 'animate-bounce text-amber-300' : ''}`} />
+                          </button>
+                          <button
+                            onClick={e => handleAddToQueue(e, track)}
+                            className="p-1.5 text-[#888] hover:text-white transition-colors"
+                            title="Add to queue"
+                          >
+                            {addedTrackId === track.id ? (
+                              <Check className="w-4 h-4 text-emerald-400" />
+                            ) : (
+                              <Plus className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Curated Hits Section (if real songs were shown first) */}
+            {(filterType === 'all' || filterType === 'tracks') && realTracks.length > 0 && matchingTracks.length > 0 && (
+              <div className="space-y-3 pt-4 border-t border-[#242424]">
+                <h2 className="text-xl font-bold text-white tracking-tight">Iconic Hits & Anthems</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {matchingTracks.map(track => (
+                    <div
+                      key={track.id}
+                      onClick={() => playTrack(track, matchingTracks)}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-[#181818] hover:bg-[#222] cursor-pointer transition-colors"
+                    >
+                      <img
+                        src={track.coverUrl}
+                        alt={track.title}
+                        className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold text-white truncate">{track.title}</div>
+                        <div className="text-xs text-[#a7a7a7] truncate">{track.artistName}</div>
+                      </div>
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          playTrack(track, matchingTracks);
+                        }}
+                        className="w-8 h-8 rounded-full bg-[#2a2a2a] hover:bg-emerald-500 hover:text-black flex items-center justify-center text-white transition-colors"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current translate-x-0.2" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -566,33 +843,64 @@ export const SearchView: React.FC<SearchViewProps> = ({
           </div>
         )
       ) : (
-        /* 4. Browse All Genres / Categories (when search is empty) */
-        <div className="space-y-6 pt-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-extrabold text-white tracking-tight">Browse All Genres</h2>
-            <span className="text-xs text-[#888]">Click any category to filter</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {GENRES.map(genre => (
-              <div
-                key={genre.id}
-                onClick={() => onSearchChange(genre.name)}
-                className={`group relative h-44 rounded-2xl p-4 overflow-hidden cursor-pointer shadow-lg transition-transform hover:scale-103 bg-gradient-to-br ${genre.color}`}
-              >
-                <h3 className="text-xl font-extrabold text-white tracking-tight">
-                  {genre.name}
-                </h3>
-                <img
-                  src={genre.coverUrl}
-                  alt={genre.name}
-                  className="absolute right-[-15px] bottom-[-10px] w-24 h-24 object-cover rotate-[25deg] shadow-2xl rounded-lg transition-transform group-hover:scale-110"
-                  referrerPolicy="no-referrer"
-                />
+        /* 4. Browse Section (when search is empty) */
+        <div className="space-y-8 pt-2">
+          {/* Feature Card: Global Real Music Fetch */}
+          <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-[#181818] to-[#141414] border border-emerald-500/20 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
+                  Global Music Previews
+                </span>
+                <span className="text-xs text-[#888]">Direct Audio Streaming</span>
               </div>
-            ))}
+              <h2 className="text-2xl font-black text-white tracking-tight">
+                Stream Real Songs from World Artists
+              </h2>
+              <p className="text-xs md:text-sm text-[#a7a7a7] max-w-xl leading-relaxed">
+                Fetch and listen to genuine recordings by Taylor Swift, The Weeknd, Billie Eilish, Drake, Kendrick Lamar, Queen, and more with instant HTTP 206 range audio playback.
+              </p>
+            </div>
+
+            <button
+              onClick={handleFetchTopRealHits}
+              disabled={isLoadingReal}
+              className="px-6 py-3 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-sm shadow-xl hover:shadow-emerald-500/25 active:scale-95 transition-all flex items-center gap-2.5 flex-shrink-0"
+            >
+              <Zap className={`w-4 h-4 fill-black ${isLoadingReal ? 'animate-bounce' : ''}`} />
+              <span>{isLoadingReal ? 'Loading Top Hits...' : 'Fetch Top 30 Hits'}</span>
+            </button>
+          </div>
+
+          {/* Browse All Genres */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-extrabold text-white tracking-tight">Browse All Genres</h2>
+              <span className="text-xs text-[#888]">Click any category to filter</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {GENRES.map(genre => (
+                <div
+                  key={genre.id}
+                  onClick={() => onSearchChange(genre.name)}
+                  className={`group relative h-44 rounded-2xl p-4 overflow-hidden cursor-pointer shadow-lg transition-transform hover:scale-103 bg-gradient-to-br ${genre.color}`}
+                >
+                  <h3 className="text-xl font-extrabold text-white tracking-tight">
+                    {genre.name}
+                  </h3>
+                  <img
+                    src={genre.coverUrl}
+                    alt={genre.name}
+                    className="absolute right-[-15px] bottom-[-10px] w-24 h-24 object-cover rotate-[25deg] shadow-2xl rounded-lg transition-transform group-hover:scale-110"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
     </div>
   );
 };
+
