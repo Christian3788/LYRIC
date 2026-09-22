@@ -86,7 +86,17 @@ function MainApp() {
         <Navbar
           currentView={currentNav.view}
           searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+          onSearchChange={q => {
+            setSearchQuery(q);
+            if (currentNav.view !== 'search') {
+              navigateTo('search');
+            }
+          }}
+          onNavigateToSearch={() => {
+            if (currentNav.view !== 'search') {
+              navigateTo('search');
+            }
+          }}
           onOpenParty={() => setIsPartyOpen(true)}
           onOpenArchitecture={() => setIsArchOpen(true)}
           onGoBack={goBack}

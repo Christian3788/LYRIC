@@ -348,6 +348,16 @@ app.get('/api/party/rooms/:roomId', (req, res) => {
   });
 });
 
+// Search endpoint
+app.get('/api/search', (req, res) => {
+  const q = String(req.query.q || '').trim().toLowerCase();
+  res.json({
+    query: q,
+    status: 'ok',
+    message: 'Client-side reactive search is active with full catalog index',
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', engine: 'Node.js/Express 206 Streaming + WebSockets', uptime: process.uptime() });

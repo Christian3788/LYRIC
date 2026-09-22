@@ -14,6 +14,7 @@ interface NavbarProps {
   currentView: string;
   searchQuery: string;
   onSearchChange: (q: string) => void;
+  onNavigateToSearch?: () => void;
   onOpenParty: () => void;
   onOpenArchitecture: () => void;
   onGoBack: () => void;
@@ -26,6 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentView,
   searchQuery,
   onSearchChange,
+  onNavigateToSearch,
   onOpenParty,
   onOpenArchitecture,
   onGoBack,
@@ -38,9 +40,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header
       id="main-navbar"
-      className="sticky top-0 z-40 h-16 bg-[#121212]/90 backdrop-blur-md px-6 flex items-center justify-between border-b border-[#282828]/50"
+      className="sticky top-0 z-40 h-16 bg-[#121212]/90 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between border-b border-[#282828]/50"
     >
-      {/* 1. Left: Navigation History (Back / Forward) */}
+      {/* 1. Left: Navigation History (Back / Forward) & Global Search Input */}
       <div className="flex items-center gap-2">
         <button
           id="nav-back-btn"
@@ -66,29 +68,41 @@ export const Navbar: React.FC<NavbarProps> = ({
           <ChevronRight className="w-5 h-5" />
         </button>
 
-        {/* 2. Middle-Left: Instant Search Bar (shown when on Search or always available) */}
-        {currentView === 'search' && (
-          <div className="relative ml-3 w-80">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a7a7a7]" />
-            <input
-              id="navbar-search-input"
-              type="text"
-              value={searchQuery}
-              onChange={e => onSearchChange(e.target.value)}
-              placeholder="What do you want to play?"
-              className="w-full bg-[#242424] hover:bg-[#2a2a2a] focus:bg-[#2a2a2a] text-sm text-white placeholder-[#727272] pl-10 pr-9 py-2 rounded-full outline-none border border-transparent focus:border-white/30 transition-all"
-              autoFocus
-            />
-            {searchQuery && (
-              <button
-                onClick={() => onSearchChange('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a7a7a7] hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        )}
+        {/* 2. Middle-Left: Instant Global Search Bar */}
+        <div className="relative ml-2 sm:ml-4 w-40 sm:w-60 md:w-80">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a7a7a7]" />
+          <input
+            id="navbar-search-input"
+            type="text"
+            value={searchQuery}
+            onFocus={() => {
+              if (currentView !== 'search' && onNavigateToSearch) {
+                onNavigateToSearch();
+              }
+            }}
+            onChange={e => {
+              onSearchChange(e.target.value);
+              if (currentView !== 'search' && onNavigateToSearch) {
+                onNavigateToSearch();
+              }
+            }}
+            placeholder="Search songs, artists..."
+            className={`w-full bg-[#242424] hover:bg-[#2a2a2a] focus:bg-[#2a2a2a] text-xs sm:text-sm text-white placeholder-[#727272] pl-9 sm:pl-10 pr-8 py-2 rounded-full outline-none border transition-all ${
+              currentView === 'search'
+                ? 'border-white/40 shadow-inner'
+                : 'border-transparent hover:border-white/20'
+            }`}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => onSearchChange('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#a7a7a7] hover:text-white"
+              title="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 3. Right: Quick Actions & Profile */}
