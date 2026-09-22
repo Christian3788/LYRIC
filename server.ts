@@ -6,6 +6,7 @@ import { createServer as createViteServer } from 'vite';
 import { getOrCreateTrackBuffer } from './server/audioGenerator.js';
 import { fetchFMATracks, fetchFMAFeatured } from './server/fmaService.js';
 import { searchYouTubeMusic, getTrendingYouTubeMusic } from './server/youtubeService.js';
+import { getTrendingAudiusTracks, searchAudiusTracks } from './server/audiusService.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -699,6 +700,63 @@ app.get('/api/youtube/trending', async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Failed to fetch trending YouTube music',
+      tracks: [],
+    });
+  }
+});
+
+// -------------------------------------------------------------
+// AUDIUS API ENDPOINTS (Decentralized Community Music Streaming)
+// -------------------------------------------------------------
+
+// Trending Audius Tracks with optional genre filter
+app.get('/api/audius/trending', async (req, res) => {
+  const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit || '24'), 10)));
+  const genre = req.query.genre ? String(req.query.genre) : undefined;
+
+  try {
+    const tracks = await getTrendingAudiusTracks(limit, genre);
+    res.json({
+      status: 'ok',
+      source: 'Audius Decentralized Network (audius.co)',
+      genre: genre || 'All',
+      count: tracks.length,
+      tracks,
+    });
+  } catch (err: any) {
+    console.error('Audius trending error:', err?.message || err);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch trending Audius tracks',
+      tracks: [],
+    });
+  }
+});
+
+// Search Audius Tracks
+app.get('/api/audius/search', async (req, res) => {
+  const query = String(req.query.q || '').trim();
+  const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit || '20'), 10)));
+
+  if (!query) {
+    res.status(400).json({ status: 'error', message: 'Query parameter q is required', tracks: [] });
+    return;
+  }
+
+  try {
+    const tracks = await searchAudiusTracks(query, limit);
+    res.json({
+      status: 'ok',
+      source: 'Audius Decentralized Network (audius.co)',
+      query,
+      count: tracks.length,
+      tracks,
+    });
+  } catch (err: any) {
+    console.error('Audius search error:', err?.message || err);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to search Audius tracks',
       tracks: [],
     });
   }

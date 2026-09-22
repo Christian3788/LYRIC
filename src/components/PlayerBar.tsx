@@ -135,6 +135,13 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
               >
                 YOUTUBE
               </span>
+            ) : currentTrack.isAudius || currentTrack.sourceType === 'audius' ? (
+              <span
+                className="px-1.5 py-0.2 rounded bg-purple-600/30 text-purple-300 text-[9px] font-bold border border-purple-500/40 uppercase tracking-wider flex-shrink-0"
+                title="Audius Decentralized Music Network"
+              >
+                AUDIUS
+              </span>
             ) : currentTrack.isFMA ? (
               <span
                 className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold border border-amber-500/40 uppercase tracking-wider flex-shrink-0"

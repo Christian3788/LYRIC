@@ -27,6 +27,7 @@ import { Track } from '../types';
 import { fetchRealSongs, fetchTopCharts } from '../services/realSongsService';
 import { searchFMATracks, downloadFMATrack } from '../services/fmaService';
 import { searchYouTubeMusic, fetchTrendingYouTubeMusic } from '../services/youtubeService';
+import { searchAudius, fetchTrendingAudius, AUDIUS_POPULAR_GENRES } from '../services/audiusService';
 
 interface SearchViewProps {
   searchQuery: string;
@@ -60,7 +61,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   onNavigatePlaylist,
 }) => {
   const { currentTrack, isPlaying, playTrack, togglePlayPause, addToQueue, openVideo, closeVideo } = useAudio();
-  const [filterType, setFilterType] = useState<'all' | 'youtube' | 'fma' | 'real' | 'tracks' | 'artists' | 'albums' | 'playlists'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'audius' | 'youtube' | 'fma' | 'real' | 'tracks' | 'artists' | 'albums' | 'playlists'>('all');
   const [addedTrackId, setAddedTrackId] = useState<string | null>(null);
   const [realTracks, setRealTracks] = useState<Track[]>([]);
   const [isLoadingReal, setIsLoadingReal] = useState<boolean>(false);
@@ -68,6 +69,9 @@ export const SearchView: React.FC<SearchViewProps> = ({
   const [isLoadingFMA, setIsLoadingFMA] = useState<boolean>(false);
   const [youtubeTracks, setYoutubeTracks] = useState<Track[]>([]);
   const [isLoadingYouTube, setIsLoadingYouTube] = useState<boolean>(false);
+  const [audiusTracks, setAudiusTracks] = useState<Track[]>([]);
+  const [isLoadingAudius, setIsLoadingAudius] = useState<boolean>(false);
+  const [selectedAudiusGenre, setSelectedAudiusGenre] = useState<string>('All');
   const [downloadingFMAId, setDownloadingFMAId] = useState<string | null>(null);
   const [hasManuallyFetched, setHasManuallyFetched] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -79,7 +83,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
     }
   }, []);
 
-  // Debounced live fetch of real songs, FMA tracks, and YouTube videos
+  // Debounced live fetch of real songs, FMA tracks, YouTube videos, and Audius tracks
   useEffect(() => {
     const trimmed = searchQuery.trim();
     if (!trimmed) {
@@ -87,6 +91,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
         setRealTracks([]);
         setFmaTracks([]);
         setYoutubeTracks([]);
+        setAudiusTracks([]);
       }
       return;
     }
@@ -95,13 +100,15 @@ export const SearchView: React.FC<SearchViewProps> = ({
     setIsLoadingReal(true);
     setIsLoadingFMA(true);
     setIsLoadingYouTube(true);
+    setIsLoadingAudius(true);
 
     const timer = setTimeout(async () => {
       try {
-        const [fetchedReal, fetchedFMA, fetchedYT] = await Promise.allSettled([
+        const [fetchedReal, fetchedFMA, fetchedYT, fetchedAudius] = await Promise.allSettled([
           fetchRealSongs(trimmed, 25),
           searchFMATracks(trimmed, 20),
           searchYouTubeMusic(`${trimmed} official video`, 18),
+          searchAudius(trimmed, 20),
         ]);
 
         if (isMounted) {
@@ -114,9 +121,13 @@ export const SearchView: React.FC<SearchViewProps> = ({
           if (fetchedYT.status === 'fulfilled') {
             setYoutubeTracks(fetchedYT.value);
           }
+          if (fetchedAudius.status === 'fulfilled') {
+            setAudiusTracks(fetchedAudius.value);
+          }
           setIsLoadingReal(false);
           setIsLoadingFMA(false);
           setIsLoadingYouTube(false);
+          setIsLoadingAudius(false);
         }
       } catch (err) {
         console.warn('Live search caught:', err);
@@ -124,6 +135,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
           setIsLoadingReal(false);
           setIsLoadingFMA(false);
           setIsLoadingYouTube(false);
+          setIsLoadingAudius(false);
         }
       }
     }, 350);
@@ -182,6 +194,23 @@ export const SearchView: React.FC<SearchViewProps> = ({
       console.warn('Error fetching YouTube trending:', e);
     } finally {
       setIsLoadingYouTube(false);
+    }
+  };
+
+  // Handle manual "Fetch Audius Music" click
+  const handleFetchAudiusTrending = async (genre?: string) => {
+    setIsLoadingAudius(true);
+    setHasManuallyFetched(true);
+    try {
+      const audiusResults = await fetchTrendingAudius(24, genre);
+      setAudiusTracks(audiusResults);
+      if (!searchQuery) {
+        onSearchChange(genre && genre !== 'All' ? `Audius ${genre}` : 'Audius Trending');
+      }
+    } catch (e) {
+      console.warn('Error fetching Audius trending:', e);
+    } finally {
+      setIsLoadingAudius(false);
     }
   };
 
@@ -288,6 +317,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   }, [cleanQuery, queryWords]);
 
   const hasResults =
+    audiusTracks.length > 0 ||
     youtubeTracks.length > 0 ||
     fmaTracks.length > 0 ||
     realTracks.length > 0 ||
@@ -302,11 +332,13 @@ export const SearchView: React.FC<SearchViewProps> = ({
 
   // Determine top highlight track
   const topResultTrack =
-    filterType === 'youtube'
+    filterType === 'audius'
+      ? audiusTracks[0]
+      : filterType === 'youtube'
       ? youtubeTracks[0]
       : filterType === 'fma'
       ? fmaTracks[0]
-      : youtubeTracks[0] || fmaTracks[0] || realTracks[0] || matchingTracks[0];
+      : audiusTracks[0] || youtubeTracks[0] || fmaTracks[0] || realTracks[0] || matchingTracks[0];
 
   return (
     <div id="search-view" className="p-6 md:p-8 space-y-6 pb-24 max-w-7xl mx-auto">
@@ -340,8 +372,19 @@ export const SearchView: React.FC<SearchViewProps> = ({
             )}
           </div>
 
-          {/* Quick Actions: YouTube Music, Free Music Archive, Real Songs */}
+          {/* Quick Actions: Audius, YouTube Music, Free Music Archive, Real Songs */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <button
+              id="fetch-audius-songs-btn"
+              onClick={() => handleFetchAudiusTrending()}
+              disabled={isLoadingAudius}
+              className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg hover:shadow-purple-600/20 active:scale-95 transition-all flex-1 sm:flex-initial whitespace-nowrap"
+              title="Fetch trending tracks from Audius decentralized music API"
+            >
+              <Music className={`w-4 h-4 ${isLoadingAudius ? 'animate-spin' : ''}`} />
+              <span>{isLoadingAudius ? 'Fetching Audius...' : 'Audius API'}</span>
+            </button>
+
             <button
               id="fetch-youtube-songs-btn"
               onClick={handleFetchYouTubeTrending}
@@ -400,10 +443,11 @@ export const SearchView: React.FC<SearchViewProps> = ({
       </div>
 
       {/* 2. Filter Pills (when query or real songs exist) */}
-      {(cleanQuery || youtubeTracks.length > 0 || realTracks.length > 0 || fmaTracks.length > 0) && hasResults && (
+      {(cleanQuery || audiusTracks.length > 0 || youtubeTracks.length > 0 || realTracks.length > 0 || fmaTracks.length > 0) && hasResults && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-[#242424] pt-2">
           {[
             { id: 'all', label: 'All' },
+            ...(audiusTracks.length > 0 ? [{ id: 'audius', label: `Audius (${audiusTracks.length})` }] : []),
             ...(youtubeTracks.length > 0 ? [{ id: 'youtube', label: `YouTube Videos (${youtubeTracks.length})` }] : []),
             ...(fmaTracks.length > 0 ? [{ id: 'fma', label: `Free Music Archive (${fmaTracks.length})` }] : []),
             ...(realTracks.length > 0 ? [{ id: 'real', label: `Global Hits (${realTracks.length})` }] : []),
@@ -657,6 +701,123 @@ export const SearchView: React.FC<SearchViewProps> = ({
                         );
                       })}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Audius Decentralized Music Section */}
+            {(filterType === 'all' || filterType === 'audius') && audiusTracks.length > 0 && (
+              <div className="space-y-4 pt-4 border-t border-[#242424]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-purple-600/20 text-purple-400 flex items-center justify-center border border-purple-500/30">
+                      <Music className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-bold text-white tracking-tight">Audius Decentralized Music</h2>
+                        <span className="px-2 py-0.5 rounded-full bg-purple-600/20 text-purple-300 text-[10px] font-bold border border-purple-500/30">
+                          {audiusTracks.length} FULL TRACKS
+                        </span>
+                        <span className="hidden sm:inline px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-300 text-[9px] font-mono border border-purple-800/40">
+                          320kbps MP3
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#b8a5cf]">
+                        Decentralized, open-source streaming powered by Audius • Full songs, no audio cutoffs
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Genre Quick Filter */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                    {AUDIUS_POPULAR_GENRES.slice(0, 5).map(g => (
+                      <button
+                        key={g}
+                        onClick={() => {
+                          setSelectedAudiusGenre(g);
+                          handleFetchAudiusTrending(g);
+                        }}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${
+                          selectedAudiusGenre === g
+                            ? 'bg-purple-600 text-white font-bold shadow-sm'
+                            : 'bg-[#21162d] text-[#c9b3e6] hover:bg-[#312044] border border-[#3e2659]'
+                        }`}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {audiusTracks.map(track => {
+                    const isThisTrackPlaying = currentTrack?.id === track.id && isPlaying;
+                    return (
+                      <div
+                        key={track.id}
+                        onClick={() => playTrack(track, audiusTracks)}
+                        className="group flex items-center justify-between p-3 rounded-xl bg-[#171120] hover:bg-[#251b34] transition-all cursor-pointer border border-[#2d1e3d] hover:border-purple-500/40 shadow-sm"
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-[#241535] flex-shrink-0 shadow-md">
+                            <img
+                              src={track.coverUrl}
+                              alt={track.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              {isThisTrackPlaying ? (
+                                <Pause className="w-4 h-4 text-purple-300 fill-purple-300" />
+                              ) : (
+                                <Play className="w-4 h-4 text-white fill-white translate-x-0.5" />
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="min-w-0 flex-1 pr-2">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className="font-semibold text-sm text-white truncate group-hover:text-purple-300 transition-colors"
+                                title={track.title}
+                              >
+                                {track.title}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5 text-xs text-[#a7a7a7]">
+                              <span className="truncate text-[#c4b5d4]">{track.artistName}</span>
+                              <span className="px-1 py-0.2 rounded bg-purple-600/30 text-purple-300 text-[8px] font-bold">
+                                {track.genre || 'AUDIUS'}
+                              </span>
+                              {track.mood && (
+                                <span className="text-[10px] text-[#8e7a9e] truncate hidden sm:inline">
+                                  • {track.mood}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={e => handleAddToQueue(e, track)}
+                            className="w-7 h-7 rounded-full hover:bg-[#322047] flex items-center justify-center text-[#888] hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Add to queue"
+                          >
+                            {addedTrackId === track.id ? (
+                              <Check className="w-3.5 h-3.5 text-purple-400" />
+                            ) : (
+                              <Plus className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                          <span className="text-xs font-mono text-[#8a7a99] w-10 text-right">
+                            {formatTime(track.durationSeconds)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

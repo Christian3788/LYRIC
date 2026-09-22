@@ -6,6 +6,7 @@ import { formatCompactNumber, formatTime } from '../utils/formatters';
 import { fetchRealSongs, fetchTopCharts } from '../services/realSongsService';
 import { searchFMATracks, downloadFMATrack } from '../services/fmaService';
 import { fetchTrendingYouTubeMusic, searchYouTubeMusic } from '../services/youtubeService';
+import { fetchTrendingAudius, AUDIUS_POPULAR_GENRES } from '../services/audiusService';
 import { Track } from '../types';
 
 interface HomeViewProps {
@@ -108,7 +109,26 @@ export const HomeView: React.FC<HomeViewProps> = ({
     loadRealSongs('Top Global Hits');
     loadFMATracks('electronic');
     loadYouTubeTracks('', 'Trending');
+    loadAudiusTracks('All');
   }, []);
+
+  // Audius state
+  const [audiusTracks, setAudiusTracks] = useState<Track[]>([]);
+  const [isLoadingAudius, setIsLoadingAudius] = useState(false);
+  const [selectedAudiusGenre, setSelectedAudiusGenre] = useState('All');
+
+  const loadAudiusTracks = async (genre: string = 'All') => {
+    setIsLoadingAudius(true);
+    setSelectedAudiusGenre(genre);
+    try {
+      const tracks = await fetchTrendingAudius(12, genre);
+      setAudiusTracks(tracks);
+    } catch (e) {
+      console.warn('Failed to load Audius tracks:', e);
+    } finally {
+      setIsLoadingAudius(false);
+    }
+  };
 
   const loadRealSongs = async (preset: string) => {
     setIsLoadingReal(true);
@@ -623,6 +643,143 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   </span>
                   <span className="text-[11px] text-[#a7a7a7] truncate mt-0.5" title={track.artistName}>
                     {track.channelName || track.artistName}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Audius Decentralized Music (Free Community Streaming API) */}
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md bg-purple-600/20 text-purple-400 flex items-center justify-center border border-purple-500/30">
+                <Music className="w-3.5 h-3.5" />
+              </div>
+              <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight">
+                Audius Trending
+              </h2>
+              <span className="px-2 py-0.5 rounded-full bg-purple-600/20 text-purple-300 text-[10px] font-bold border border-purple-500/30">
+                DECENTRALIZED API
+              </span>
+              <span className="hidden sm:inline px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-300 text-[9px] font-mono border border-purple-800/40">
+                FULL SONGS
+              </span>
+            </div>
+            <p className="text-xs text-[#b09ec4] mt-0.5">
+              Decentralized audio network streams with community releases, EDM, hip-hop, and indie hits
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => loadAudiusTracks(selectedAudiusGenre)}
+              disabled={isLoadingAudius}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#242424] hover:bg-[#303030] text-xs font-semibold text-white border border-[#333] transition-colors"
+              title="Refresh Audius trending tracks"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingAudius ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+            {onNavigateSearch && (
+              <button
+                onClick={() => onNavigateSearch('Audius')}
+                className="text-xs text-purple-400 hover:text-purple-300 font-semibold hover:underline"
+              >
+                Search Audius
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Audius Genre Filter Presets */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs">
+          {AUDIUS_POPULAR_GENRES.map(genre => {
+            const isSelected = selectedAudiusGenre === genre;
+            return (
+              <button
+                key={genre}
+                onClick={() => loadAudiusTracks(genre)}
+                className={`px-3 py-1.5 rounded-full font-semibold whitespace-nowrap transition-all ${
+                  isSelected
+                    ? 'bg-purple-600 text-white shadow-md font-bold'
+                    : 'bg-[#1b1426] text-[#ccbde3] hover:bg-[#2c1d40] hover:text-white border border-[#392454]'
+                }`}
+              >
+                {genre}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Audius Tracks Grid */}
+        {isLoadingAudius ? (
+          <div className="py-12 flex flex-col items-center justify-center gap-3">
+            <div className="w-8 h-8 border-3 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs text-[#a7a7a7] font-medium">
+              Connecting to Audius decentralized nodes...
+            </span>
+          </div>
+        ) : audiusTracks.length === 0 ? (
+          <div className="p-6 text-center text-xs text-[#888] bg-[#16121f] rounded-xl border border-[#2a1d3b]">
+            Click Refresh above to load Audius tracks.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pt-1">
+            {audiusTracks.map(track => {
+              const isThisTrackPlaying = currentTrack?.id === track.id && isPlaying;
+
+              return (
+                <div
+                  key={track.id}
+                  onClick={() => playTrack(track, audiusTracks)}
+                  className="group p-3 rounded-lg bg-[#181222] hover:bg-[#251b36] transition-all duration-200 cursor-pointer flex flex-col relative border border-[#2b1c3d] hover:border-purple-500/40 shadow-sm"
+                >
+                  <div className="relative w-full aspect-square rounded-md overflow-hidden mb-2.5 bg-[#211533] shadow-md">
+                    <img
+                      src={track.coverUrl}
+                      alt={track.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      referrerPolicy="no-referrer"
+                    />
+
+                    <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-purple-600/90 backdrop-blur-sm text-[8px] font-bold text-white uppercase tracking-wider">
+                      AUDIUS
+                    </span>
+
+                    {/* Play trigger button */}
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        if (currentTrack?.id === track.id) {
+                          togglePlayPause();
+                        } else {
+                          playTrack(track, audiusTracks);
+                        }
+                      }}
+                      className={`absolute right-2 bottom-2 w-9 h-9 rounded-full bg-purple-600 text-white flex items-center justify-center shadow-xl transition-all duration-200 ${
+                        isThisTrackPlaying
+                          ? 'opacity-100 scale-100'
+                          : 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-105'
+                      }`}
+                      title={isThisTrackPlaying ? 'Pause' : 'Play Track'}
+                    >
+                      {isThisTrackPlaying ? (
+                        <Pause className="w-4 h-4 fill-white" />
+                      ) : (
+                        <Play className="w-4 h-4 fill-white translate-x-0.5" />
+                      )}
+                    </button>
+                  </div>
+
+                  <span className="font-semibold text-xs text-white truncate group-hover:text-purple-300 transition-colors" title={track.title}>
+                    {track.title}
+                  </span>
+                  <span className="text-[11px] text-[#b8a6cd] truncate mt-0.5" title={track.artistName}>
+                    {track.artistName}
                   </span>
                 </div>
               );

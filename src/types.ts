@@ -24,7 +24,11 @@ export interface Track {
   youtubeId?: string;
   isYouTube?: boolean;
   channelName?: string;
-  sourceType?: 'audio' | 'youtube';
+  audiusId?: string;
+  isAudius?: boolean;
+  audiusHandle?: string;
+  mood?: string;
+  sourceType?: 'audio' | 'youtube' | 'audius' | 'fma';
 }
 
 export interface Artist {
