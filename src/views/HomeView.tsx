@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, Heart, Radio, Sparkles, Globe, RefreshCw, Music, Disc, Download, ShieldCheck, Video } from 'lucide-react';
+import { Play, Pause, Heart, Radio, Sparkles, Globe, RefreshCw, Music, Disc, Download, ShieldCheck, Video, Headphones } from 'lucide-react';
 import { TRACKS, PLAYLISTS, ARTISTS, ALBUMS } from '../data/mockCatalog';
 import { useAudio } from '../context/AudioContext';
 import { formatCompactNumber, formatTime } from '../utils/formatters';
@@ -36,7 +36,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onNavigateSearch,
   onNavigateFMA,
 }) => {
-  const { currentTrack, isPlaying, playTrack, togglePlayPause, addToQueue, openVideo } = useAudio();
+  const { currentTrack, isPlaying, playTrack, togglePlayPause, addToQueue, openVideo, closeVideo } = useAudio();
   const [realSongs, setRealSongs] = useState<Track[]>([]);
   const [isLoadingReal, setIsLoadingReal] = useState(false);
   const [selectedArtistPreset, setSelectedArtistPreset] = useState('Top Global Hits');
@@ -578,6 +578,19 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-red-600/90 backdrop-blur-sm text-[8px] font-bold text-white uppercase tracking-wider">
                       VIDEO
                     </span>
+
+                    {/* Play Video as Audio in Background button */}
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        playTrack(track, youtubeTracks);
+                        closeVideo();
+                      }}
+                      className="absolute left-2 bottom-2 w-8 h-8 rounded-full bg-black/80 hover:bg-emerald-600 text-white flex items-center justify-center shadow-xl transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110 border border-white/20"
+                      title="Play as Audio in Background"
+                    >
+                      <Headphones className="w-3.5 h-3.5" />
+                    </button>
 
                     {/* Play trigger button */}
                     <button

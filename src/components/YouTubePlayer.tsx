@@ -5,6 +5,7 @@ import {
   X,
   Radio,
   ExternalLink,
+  Headphones,
 } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
 
@@ -23,7 +24,7 @@ export const YouTubePlayer: React.FC = () => {
         isVideoOpen && hasYouTubeVideo
           ? isExpanded
             ? 'inset-4 md:inset-12 bg-black/95 rounded-2xl shadow-2xl flex flex-col p-4 border border-[#333]'
-            : 'bottom-28 right-6 w-[340px] sm:w-[400px] h-[260px] sm:h-[285px] bg-[#141414] rounded-xl shadow-2xl flex flex-col border border-red-500/30 overflow-hidden'
+            : 'bottom-28 right-6 w-[340px] sm:w-[420px] h-[270px] sm:h-[295px] bg-[#141414] rounded-xl shadow-2xl flex flex-col border border-red-500/30 overflow-hidden'
           : hasYouTubeVideo && activeEngine === 'youtube'
           ? 'bottom-28 right-6 w-[200px] h-[40px] opacity-0 pointer-events-none' // invisible keep-alive when playing audio in background
           : 'hidden'
@@ -36,12 +37,24 @@ export const YouTubePlayer: React.FC = () => {
             <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-600 text-white font-bold text-[10px] tracking-wider">
               YOUTUBE
             </span>
-            <span className="text-white font-semibold truncate max-w-[180px] sm:max-w-[240px]">
+            <span className="text-white font-semibold truncate max-w-[130px] sm:max-w-[180px]">
               {currentTrack?.title}
             </span>
           </div>
 
           <div className="flex items-center gap-1.5 text-[#a7a7a7]">
+            {/* Play as Background Audio Button */}
+            <button
+              id="yt-play-background-audio-btn"
+              onClick={closeVideo}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#272727] hover:bg-[#343434] text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold transition-all hover:scale-105 active:scale-95 shadow-sm"
+              title="Play as audio in background (hides video screen, audio keeps playing smoothly)"
+            >
+              <Headphones className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+              <span className="hidden sm:inline">Background Audio</span>
+              <span className="sm:hidden">Audio</span>
+            </button>
+
             {currentTrack?.youtubeId && (
               <a
                 href={`https://www.youtube.com/watch?v=${currentTrack.youtubeId}`}
@@ -65,7 +78,7 @@ export const YouTubePlayer: React.FC = () => {
             <button
               onClick={closeVideo}
               className="p-1 hover:text-white hover:bg-red-500/20 rounded transition-colors"
-              title="Close Video Window"
+              title="Close Video Window (continue audio in background)"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -81,12 +94,17 @@ export const YouTubePlayer: React.FC = () => {
       {/* Mini footer status when visible in window */}
       {isVideoOpen && hasYouTubeVideo && !isExpanded && (
         <div className="px-3 py-1.5 bg-[#121212] border-t border-[#222] flex items-center justify-between text-[11px] text-[#888]">
-          <span className="truncate">
+          <span className="truncate max-w-[180px] sm:max-w-[220px]">
             {currentTrack?.channelName || currentTrack?.artistName}
           </span>
-          <span className="text-emerald-400 font-mono text-[10px] flex items-center gap-1">
-            <Radio className="w-3 h-3 animate-pulse" /> Official Stream
-          </span>
+          <button
+            onClick={closeVideo}
+            className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-medium hover:underline text-[11px] transition-colors"
+            title="Switch to playing video as audio in the background"
+          >
+            <Headphones className="w-3 h-3 text-emerald-400" />
+            <span>Play as Background Audio</span>
+          </button>
         </div>
       )}
     </div>

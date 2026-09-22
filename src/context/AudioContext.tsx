@@ -39,6 +39,7 @@ interface AudioContextType {
   openVideo: () => void;
   closeVideo: () => void;
   switchToYouTubeVideo: (track?: Track) => Promise<void>;
+  playAsBackgroundAudio: (track?: Track) => Promise<void>;
   playTrack: (track: Track, newQueue?: Track[]) => void;
   togglePlayPause: () => void;
   play: () => void;
@@ -624,6 +625,55 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [currentTrack, loadAndPlayTrack]
   );
 
+  // Switch to or continue playing YouTube video as background audio (hiding video window)
+  const playAsBackgroundAudio = useCallback(
+    async (trackToSwitch?: Track) => {
+      const track = trackToSwitch || currentTrack;
+      if (!track) return;
+
+      // If already playing via YouTube engine: just close the video window to keep audio in background
+      if (activeEngine === 'youtube' && (currentTrack?.youtubeId || currentTrack?.isYouTube)) {
+        setIsVideoOpen(false);
+        if (!isPlaying) {
+          play();
+        }
+        return;
+      }
+
+      // If track already has YouTube ID, switch immediately without opening video window
+      if (track.youtubeId) {
+        setIsVideoOpen(false);
+        loadAndPlayTrack(track, true);
+        return;
+      }
+
+      // Otherwise search YouTube for the official track and play directly in background
+      setIsSearchingYouTube(true);
+      try {
+        const results = await searchYouTubeMusic(`${track.artistName} ${track.title} official video`, 3);
+        if (results.length > 0) {
+          const ytTrack = results[0];
+          const updatedTrack: Track = {
+            ...track,
+            youtubeId: ytTrack.youtubeId,
+            isYouTube: true,
+            sourceType: 'youtube',
+            coverUrl: ytTrack.coverUrl || track.coverUrl,
+            durationSeconds: ytTrack.durationSeconds || track.durationSeconds,
+          };
+          setCurrentTrack(updatedTrack);
+          setIsVideoOpen(false); // Explicitly keep video hidden for background audio!
+          loadAndPlayTrack(updatedTrack, true);
+        }
+      } catch (err) {
+        console.warn('Error playing YouTube audio in background:', err);
+      } finally {
+        setIsSearchingYouTube(false);
+      }
+    },
+    [currentTrack, activeEngine, isPlaying, play, loadAndPlayTrack]
+  );
+
   const toggleShuffle = useCallback(() => {
     setIsShuffled(prev => {
       const willShuffle = !prev;
@@ -738,6 +788,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         openVideo,
         closeVideo,
         switchToYouTubeVideo,
+        playAsBackgroundAudio,
         playTrack,
         togglePlayPause,
         play,

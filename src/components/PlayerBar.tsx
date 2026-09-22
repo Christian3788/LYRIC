@@ -18,6 +18,7 @@ import {
   Download,
   Video,
   Loader2,
+  Headphones,
 } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
 import { useParty } from '../context/PartyContext';
@@ -61,7 +62,10 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
     activeEngine,
     isVideoOpen,
     toggleVideo,
+    openVideo,
+    closeVideo,
     switchToYouTubeVideo,
+    playAsBackgroundAudio,
     isSearchingYouTube,
   } = useAudio();
 
@@ -306,47 +310,68 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
           206 CHUNK
         </span>
 
-        {/* Official YouTube Music Video Toggle */}
-        <button
-          id="player-video-btn"
-          onClick={() => {
-            if (!currentTrack.youtubeId && !currentTrack.isYouTube) {
-              switchToYouTubeVideo();
-            } else {
-              toggleVideo();
-            }
-          }}
-          disabled={isSearchingYouTube}
-          className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-all ${
-            isVideoOpen
-              ? 'bg-red-600 text-white shadow-md'
-              : currentTrack.youtubeId || currentTrack.isYouTube
-              ? 'text-red-400 hover:text-white hover:bg-red-500/20'
-              : 'text-[#a7a7a7] hover:text-white hover:bg-[#282828]'
-          }`}
-          title={
-            currentTrack.youtubeId || currentTrack.isYouTube
-              ? isVideoOpen
-                ? 'Minimize Video Player'
-                : 'Watch Official YouTube Video'
-              : 'Switch to Official YouTube Music Video'
-          }
-        >
-          {isSearchingYouTube ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-red-400" />
-          ) : (
-            <Video className="w-3.5 h-3.5 text-red-500" />
-          )}
-          <span className="hidden xl:inline">
-            {isSearchingYouTube
-              ? 'Finding...'
-              : isVideoOpen
-              ? 'Video'
-              : currentTrack.youtubeId
-              ? 'Video'
-              : 'Watch'}
-          </span>
-        </button>
+        {/* YouTube Video / Background Audio Controls */}
+        {isVideoOpen ? (
+          /* When video window is open: offer explicit button to play video as audio in the background! */
+          <button
+            id="player-bg-audio-action-btn"
+            onClick={closeVideo}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 text-xs font-semibold transition-all hover:scale-105 active:scale-95 shadow-sm"
+            title="Play video as audio in background (hides video window, keeps audio playing)"
+          >
+            <Headphones className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+            <span className="hidden sm:inline">Play as Audio</span>
+            <span className="sm:hidden">Audio</span>
+          </button>
+        ) : activeEngine === 'youtube' ? (
+          /* When currently playing YouTube video as background audio */
+          <div className="flex items-center gap-1">
+            <span
+              className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[11px] font-mono select-none"
+              title="Currently playing YouTube video as background audio"
+            >
+              <Headphones className="w-3 h-3 text-emerald-400 animate-pulse" />
+              <span className="hidden sm:inline">Background Audio</span>
+            </span>
+            <button
+              id="player-show-video-btn"
+              onClick={openVideo}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-red-400 hover:text-white hover:bg-red-500/20 font-medium transition-colors"
+              title="Show Video Window"
+            >
+              <Video className="w-3.5 h-3.5 text-red-500" />
+              <span className="hidden xl:inline">Show Video</span>
+            </button>
+          </div>
+        ) : (
+          /* When playing standard audio: allow one-click to play video or play video as background audio */
+          <div className="flex items-center gap-1">
+            <button
+              id="player-play-as-bg-audio-btn"
+              onClick={() => playAsBackgroundAudio()}
+              disabled={isSearchingYouTube}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-[#a7a7a7] hover:text-emerald-400 hover:bg-[#282828] font-medium transition-colors"
+              title="Play official video as background audio"
+            >
+              {isSearchingYouTube ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+              ) : (
+                <Headphones className="w-3.5 h-3.5" />
+              )}
+              <span className="hidden xl:inline">Play as Audio</span>
+            </button>
+            <button
+              id="player-video-btn"
+              onClick={() => switchToYouTubeVideo()}
+              disabled={isSearchingYouTube}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-[#a7a7a7] hover:text-red-400 hover:bg-[#282828] font-medium transition-colors"
+              title="Watch Official Video"
+            >
+              <Video className="w-3.5 h-3.5 text-red-500" />
+              <span className="hidden xl:inline">Video</span>
+            </button>
+          </div>
+        )}
 
         {/* Synced Lyrics Toggle */}
         <button

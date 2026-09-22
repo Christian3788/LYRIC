@@ -18,6 +18,7 @@ import {
   Zap,
   Download,
   Video,
+  Headphones,
 } from 'lucide-react';
 import { TRACKS, ARTISTS, ALBUMS, PLAYLISTS, GENRES } from '../data/mockCatalog';
 import { useAudio } from '../context/AudioContext';
@@ -58,7 +59,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   onNavigateAlbum,
   onNavigatePlaylist,
 }) => {
-  const { currentTrack, isPlaying, playTrack, togglePlayPause, addToQueue, openVideo } = useAudio();
+  const { currentTrack, isPlaying, playTrack, togglePlayPause, addToQueue, openVideo, closeVideo } = useAudio();
   const [filterType, setFilterType] = useState<'all' | 'youtube' | 'fma' | 'real' | 'tracks' | 'artists' | 'albums' | 'playlists'>('all');
   const [addedTrackId, setAddedTrackId] = useState<string | null>(null);
   const [realTracks, setRealTracks] = useState<Track[]>([]);
@@ -727,17 +728,31 @@ export const SearchView: React.FC<SearchViewProps> = ({
                           </div>
                         </div>
 
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            playTrack(track, youtubeTracks);
-                            openVideo();
-                          }}
-                          className="p-2 text-[#888] hover:text-white hover:bg-[#382323] rounded-full transition-colors ml-2"
-                          title="Watch Official Video"
-                        >
-                          <Video className="w-4 h-4 text-red-400" />
-                        </button>
+                        <div className="flex items-center gap-1 ml-2">
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              playTrack(track, youtubeTracks);
+                              closeVideo();
+                            }}
+                            className="p-2 text-[#888] hover:text-emerald-400 hover:bg-[#1a2d1f] rounded-full transition-colors"
+                            title="Play as Audio in Background (no video window)"
+                          >
+                            <Headphones className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              playTrack(track, youtubeTracks);
+                              openVideo();
+                            }}
+                            className="p-2 text-[#888] hover:text-white hover:bg-[#382323] rounded-full transition-colors"
+                            title="Watch Official Video"
+                          >
+                            <Video className="w-4 h-4 text-red-400" />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
