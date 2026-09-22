@@ -16,7 +16,6 @@ import { LibraryView } from './views/LibraryView';
 import { PlaylistDetailView } from './views/PlaylistDetailView';
 import { ArtistDetailView } from './views/ArtistDetailView';
 import { AlbumDetailView } from './views/AlbumDetailView';
-import { FreeMusicArchiveView } from './views/FreeMusicArchiveView';
 import { PLAYLISTS } from './data/mockCatalog';
 import { Playlist } from './types';
 
@@ -119,7 +118,6 @@ function MainApp() {
                 if (term) setSearchQuery(term);
                 navigateTo('search');
               }}
-              onNavigateFMA={() => navigateTo('fma')}
             />
           )}
 
@@ -130,13 +128,6 @@ function MainApp() {
               onNavigateArtist={id => navigateTo('artist', id)}
               onNavigateAlbum={id => navigateTo('album', id)}
               onNavigatePlaylist={id => navigateTo('playlist', id)}
-            />
-          )}
-
-          {currentNav.view === 'fma' && (
-            <FreeMusicArchiveView
-              onNavigateArtist={id => navigateTo('artist', id)}
-              onNavigateAlbum={id => navigateTo('album', id)}
             />
           )}
 

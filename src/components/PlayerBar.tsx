@@ -15,7 +15,6 @@ import {
   Heart,
   Maximize2,
   Radio,
-  Download,
   Video,
   Loader2,
   Headphones,
@@ -23,7 +22,6 @@ import {
 import { useAudio } from '../context/AudioContext';
 import { useParty } from '../context/PartyContext';
 import { formatTime } from '../utils/formatters';
-import { downloadFMATrack } from '../services/fmaService';
 
 interface PlayerBarProps {
   onOpenQueue: () => void;
@@ -130,10 +128,10 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
             </span>
             {currentTrack.youtubeId || currentTrack.isYouTube ? (
               <span
-                className="px-1.5 py-0.2 rounded bg-red-600/25 text-red-400 text-[9px] font-bold border border-red-500/40 uppercase tracking-wider flex-shrink-0"
-                title="Official YouTube Music Track"
+                className="px-1.5 py-0.2 rounded bg-emerald-600/25 text-emerald-400 text-[9px] font-bold border border-emerald-500/40 uppercase tracking-wider flex-shrink-0"
+                title="DOODLE Video Stream"
               >
-                YOUTUBE
+                DOODLE
               </span>
             ) : currentTrack.isAudius || currentTrack.sourceType === 'audius' ? (
               <span
@@ -141,17 +139,6 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
                 title="Audius Decentralized Music Network"
               >
                 AUDIUS
-              </span>
-            ) : currentTrack.isFMA ? (
-              <span
-                className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold border border-amber-500/40 uppercase tracking-wider flex-shrink-0"
-                title="Free Music Archive (Full Length Track)"
-              >
-                FMA
-              </span>
-            ) : currentTrack.isRealSong ? (
-              <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-bold border border-emerald-500/40 uppercase tracking-wider flex-shrink-0">
-                REAL
               </span>
             ) : null}
           </div>
@@ -173,17 +160,6 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
         >
           <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
         </button>
-
-        {currentTrack.isFMA && (
-          <button
-            id="player-fma-download-btn"
-            onClick={() => downloadFMATrack(currentTrack)}
-            className="p-1.5 text-amber-400 hover:text-amber-300 transition-transform active:scale-90"
-            title="Download full-length MP3 from Free Music Archive"
-          >
-            <Download className="w-4 h-4" />
-          </button>
-        )}
 
         {isInParty && (
           <div
@@ -358,7 +334,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
               onClick={() => playAsBackgroundAudio()}
               disabled={isSearchingYouTube}
               className="flex items-center gap-1 px-2 py-1 rounded text-xs text-[#a7a7a7] hover:text-emerald-400 hover:bg-[#282828] font-medium transition-colors"
-              title="Play official video as background audio"
+              title="Play video stream as background audio"
             >
               {isSearchingYouTube ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
@@ -371,10 +347,10 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
               id="player-video-btn"
               onClick={() => switchToYouTubeVideo()}
               disabled={isSearchingYouTube}
-              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-[#a7a7a7] hover:text-red-400 hover:bg-[#282828] font-medium transition-colors"
-              title="Watch Official Video"
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-[#a7a7a7] hover:text-emerald-400 hover:bg-[#282828] font-medium transition-colors"
+              title="Watch Video Stream"
             >
-              <Video className="w-3.5 h-3.5 text-red-500" />
+              <Video className="w-3.5 h-3.5 text-emerald-400" />
               <span className="hidden xl:inline">Video</span>
             </button>
           </div>

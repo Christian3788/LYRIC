@@ -3,8 +3,6 @@ import {
   Minimize2,
   Maximize2,
   X,
-  Radio,
-  ExternalLink,
   Headphones,
 } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
@@ -24,7 +22,7 @@ export const YouTubePlayer: React.FC = () => {
         isVideoOpen && hasYouTubeVideo
           ? isExpanded
             ? 'inset-4 md:inset-12 bg-black/95 rounded-2xl shadow-2xl flex flex-col p-4 border border-[#333]'
-            : 'bottom-28 right-6 w-[340px] sm:w-[420px] h-[270px] sm:h-[295px] bg-[#141414] rounded-xl shadow-2xl flex flex-col border border-red-500/30 overflow-hidden'
+            : 'bottom-28 right-6 w-[340px] sm:w-[420px] h-[270px] sm:h-[295px] bg-[#141414] rounded-xl shadow-2xl flex flex-col border border-emerald-500/30 overflow-hidden'
           : hasYouTubeVideo && activeEngine === 'youtube'
           ? 'bottom-28 right-6 w-[200px] h-[40px] opacity-0 pointer-events-none' // invisible keep-alive when playing audio in background
           : 'hidden'
@@ -34,10 +32,10 @@ export const YouTubePlayer: React.FC = () => {
       {isVideoOpen && hasYouTubeVideo && (
         <div className="flex items-center justify-between px-3 py-2 bg-[#1a1a1a] border-b border-[#282828] text-xs">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-600 text-white font-bold text-[10px] tracking-wider">
-              YOUTUBE
+            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold text-[10px] tracking-wider">
+              DOODLE
             </span>
-            <span className="text-white font-semibold truncate max-w-[130px] sm:max-w-[180px]">
+            <span className="text-white font-semibold truncate max-w-[130px] sm:max-w-[210px]">
               {currentTrack?.title}
             </span>
           </div>
@@ -54,18 +52,6 @@ export const YouTubePlayer: React.FC = () => {
               <span className="hidden sm:inline">Background Audio</span>
               <span className="sm:hidden">Audio</span>
             </button>
-
-            {currentTrack?.youtubeId && (
-              <a
-                href={`https://www.youtube.com/watch?v=${currentTrack.youtubeId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1 hover:text-white transition-colors"
-                title="Open on YouTube"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            )}
 
             <button
               onClick={() => setIsExpanded(!isExpanded)}
