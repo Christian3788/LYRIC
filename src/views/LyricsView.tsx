@@ -1,30 +1,29 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  Play,
-  Pause,
-  SkipBack,
-  SkipForward,
-  RotateCcw,
-  RotateCw,
   Mic2,
   Sparkles,
-  Volume2,
-  VolumeX,
-  Type,
   ArrowDownCircle,
-  Music,
   Share2,
   Check,
   Disc3,
+  Play,
+  Pause,
+  RotateCcw,
+  RotateCw,
   Flame,
+  Radio,
+  Sliders,
+  RefreshCw,
+  Clock,
+  Layers,
 } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
-import { getTrackLyrics, LyricLine } from '../services/lyricsService';
+import { useTrackLyrics, LyricLine } from '../services/lyricsService';
 import { TRACKS } from '../data/mockCatalog';
 
 interface LyricsViewProps {
-  onNavigateArtist?: (artistId: string) => void;
-  onNavigateAlbum?: (albumId: string) => void;
+  onNavigateArtist?: (id: string) => void;
+  onNavigateAlbum?: (id: string) => void;
 }
 
 export const LyricsView: React.FC<LyricsViewProps> = ({
@@ -36,25 +35,35 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
     isPlaying,
     progress,
     duration,
-    togglePlayPause,
     seek,
-    nextTrack,
-    prevTrack,
+    togglePlayPause,
     playTrack,
-    volume,
-    setVolume,
+    activeEngine,
   } = useAudio();
 
-  const [textSize, setTextSize] = useState<'normal' | 'large' | 'giant'>('large');
+  const [timingOffset, setTimingOffset] = useState<number>(0);
+  const [forceFullSong, setForceFullSong] = useState<boolean>(false);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [textSize, setTextSize] = useState<'normal' | 'large' | 'giant'>('large');
   const [isKaraokeMode, setIsKaraokeMode] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const activeLineRef = useRef<HTMLDivElement | null>(null);
 
-  // Get rich timestamped moving lyrics for current track
-  const lyrics: LyricLine[] = getTrackLyrics(currentTrack);
+  // Hook into real synchronized lyrics with live LRCLIB fetching & cache
+  const { lyrics, isSynced, source, isLoading, error, reloadLyrics } = useTrackLyrics(
+    currentTrack,
+    activeEngine,
+    timingOffset,
+    forceFullSong
+  );
+
+  // Reset offset when track changes
+  useEffect(() => {
+    setTimingOffset(0);
+    setForceFullSong(false);
+  }, [currentTrack?.id]);
 
   // Determine current active lyric line
   let activeIndex = 0;
@@ -187,28 +196,80 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
 
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold tracking-wider uppercase border border-emerald-500/30">
-                Synced Lyrics
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold tracking-wider uppercase border border-emerald-500/30 flex items-center gap-1">
+                <Disc3 className="w-3 h-3 text-emerald-400 animate-spin" />
+                {source === 'lrclib' ? 'LRCLIB Synced' : isSynced ? 'Master Synced' : 'Synced'}
               </span>
+              {isLoading && (
+                <span className="flex items-center gap-1 text-[10px] text-amber-400 animate-pulse">
+                  <RefreshCw className="w-3 h-3 animate-spin" /> Fetching real lyrics...
+                </span>
+              )}
               {currentTrack.genre && (
                 <span className="text-[10px] text-[#888] font-medium hidden sm:inline">
                   • {currentTrack.genre}
                 </span>
               )}
             </div>
-            <h1 className="text-xl md:text-2xl font-black text-white truncate hover:underline cursor-pointer"
-                onClick={() => onNavigateAlbum && onNavigateAlbum(currentTrack.albumId)}>
+            <h1
+              className="text-xl md:text-2xl font-black text-white truncate hover:underline cursor-pointer"
+              onClick={() => onNavigateAlbum && onNavigateAlbum(currentTrack.albumId)}
+            >
               {currentTrack.title}
             </h1>
-            <p className="text-xs md:text-sm text-[#a7a7a7] truncate hover:text-white cursor-pointer"
-               onClick={() => onNavigateArtist && onNavigateArtist(currentTrack.artistId)}>
+            <p
+              className="text-xs md:text-sm text-[#a7a7a7] truncate hover:text-white cursor-pointer"
+              onClick={() => onNavigateArtist && onNavigateArtist(currentTrack.artistId)}
+            >
               {currentTrack.artistName}
             </p>
           </div>
         </div>
 
         {/* Toolbar Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
+          {/* Timing Calibration Offset Pill */}
+          <div className="flex items-center bg-[#202020] rounded-full px-2 py-1 border border-[#333] text-xs">
+            <span className="text-[#888] mr-1.5 text-[11px] font-mono">Sync:</span>
+            <button
+              onClick={() => setTimingOffset(prev => Math.round((prev - 0.5) * 10) / 10)}
+              className="px-1.5 py-0.5 rounded hover:bg-[#333] text-[#aaa] hover:text-white text-xs font-bold"
+              title="Shift lyrics 0.5s earlier"
+            >
+              -0.5s
+            </button>
+            <span
+              onClick={() => setTimingOffset(0)}
+              className={`px-1.5 font-mono cursor-pointer ${
+                timingOffset !== 0 ? 'text-amber-400 font-bold' : 'text-[#888]'
+              }`}
+              title="Click to reset offset"
+            >
+              {timingOffset > 0 ? `+${timingOffset}s` : `${timingOffset}s`}
+            </span>
+            <button
+              onClick={() => setTimingOffset(prev => Math.round((prev + 0.5) * 10) / 10)}
+              className="px-1.5 py-0.5 rounded hover:bg-[#333] text-[#aaa] hover:text-white text-xs font-bold"
+              title="Shift lyrics 0.5s later"
+            >
+              +0.5s
+            </button>
+          </div>
+
+          {/* Full vs Preview Mode Toggle (when track has duration metadata) */}
+          <button
+            onClick={() => setForceFullSong(!forceFullSong)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+              forceFullSong
+                ? 'bg-blue-600 text-white border-blue-400 shadow-md shadow-blue-600/20'
+                : 'bg-[#222] text-[#bbb] hover:text-white border-[#333]'
+            }`}
+            title="Toggle between 30s preview snippet and full-length song lyrics"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{forceFullSong ? 'Full Song' : 'Preview Sync'}</span>
+          </button>
+
           {/* Karaoke Mode Toggle */}
           <button
             onClick={() => setIsKaraokeMode(!isKaraokeMode)}
@@ -267,6 +328,15 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
               A++
             </button>
           </div>
+
+          {/* Reload / Refresh Lyrics */}
+          <button
+            onClick={reloadLyrics}
+            className="p-2 rounded-full bg-[#202020] hover:bg-[#2e2e2e] text-[#aaa] hover:text-white transition-colors border border-[#333]"
+            title="Refetch synced lyrics from database"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
 
           {/* Share Line */}
           <button
@@ -373,7 +443,7 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
                 <span>Now Singing</span>
               </div>
               <div className="text-2xl sm:text-3xl font-black text-white truncate">
-                {activeLine.text}
+                {activeLine?.text || '♪'}
               </div>
               {nextLine && (
                 <div className="text-sm sm:text-base text-[#888] truncate mt-1">
@@ -416,9 +486,11 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
       <footer className="px-6 py-2.5 bg-[#121214]/60 border-t border-[#202020] text-center text-xs text-[#777] flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Disc3 className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
-          <span>Synced with live playback engine</span>
+          <span>
+            {source === 'lrclib' ? 'Live Synced via Open Lyrics Database' : 'Synced with High-Precision Audio Clock'}
+          </span>
         </div>
-        <div>Click any lyric line to jump playback directly to that position</div>
+        <div className="hidden sm:block">Click any lyric line to jump playback directly to that position</div>
         <div className="font-mono text-emerald-400">
           {formatTime(progress)} / {formatTime(duration)}
         </div>

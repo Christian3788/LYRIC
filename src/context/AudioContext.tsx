@@ -58,6 +58,7 @@ interface AudioContextType {
   removeFromQueue: (index: number) => void;
   reorderQueue: (startIndex: number, endIndex: number) => void;
   clearQueue: () => void;
+  jumpToQueueIndex: (index: number) => void;
   injectRecommendedTracks: () => void;
   sleepTimerRemaining: number | null;
   activeSleepTimerMinutes: number | null;
@@ -772,6 +773,15 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [currentTrack]);
 
+  const jumpToQueueIndex = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= queue.length) return;
+      setQueueIndex(index);
+      loadAndPlayTrack(queue[index], true);
+    },
+    [queue, loadAndPlayTrack]
+  );
+
   const injectRecommendedTracks = useCallback(() => {
     // Inject tracks that are not already in the queue
     const currentIds = new Set(queue.map(t => t.id));
@@ -899,6 +909,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         removeFromQueue,
         reorderQueue,
         clearQueue,
+        jumpToQueueIndex,
         injectRecommendedTracks,
         sleepTimerRemaining,
         activeSleepTimerMinutes,

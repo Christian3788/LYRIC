@@ -24,6 +24,7 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({ isOpen, onClose }) => 
     queueIndex,
     isPlaying,
     playTrack,
+    jumpToQueueIndex,
     removeFromQueue,
     reorderQueue,
     clearQueue,
@@ -187,7 +188,7 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({ isOpen, onClose }) => 
                           </button>
                         )}
                         <button
-                          onClick={() => playTrack(track)}
+                          onClick={() => jumpToQueueIndex(actualIdx)}
                           className="p-1 hover:bg-[#2e2e2e] rounded text-[#a7a7a7] hover:text-white"
                           title="Play Now"
                         >

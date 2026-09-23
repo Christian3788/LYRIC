@@ -32,6 +32,7 @@ import {
   removeTrackOffline,
   isTrackOffline,
 } from '../services/offlineStorageService';
+import { useIsTrackLiked } from '../services/favoritesService';
 
 interface PlayerBarProps {
   onOpenQueue: () => void;
@@ -92,7 +93,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
   } = useAudio();
 
   const { isInParty, isHost, room } = useParty();
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, toggleLike] = useIsTrackLiked(currentTrack?.id);
   const [hoverSeekTime, setHoverSeekTime] = useState<number | null>(null);
   const [hoverSeekPos, setHoverSeekPos] = useState<number>(0);
   const progressBarRef = useRef<HTMLDivElement>(null);
@@ -199,7 +200,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
 
         <button
           id="player-like-btn"
-          onClick={() => setIsLiked(!isLiked)}
+          onClick={toggleLike}
           className={`p-1.5 transition-transform active:scale-90 ${
             isLiked ? 'text-emerald-500' : 'text-[#b3b3b3] hover:text-white'
           }`}

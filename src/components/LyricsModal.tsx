@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { X, Mic2 } from 'lucide-react';
+import { X, Mic2, Disc3 } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
-import { getTrackLyrics } from '../services/lyricsService';
+import { useTrackLyrics } from '../services/lyricsService';
 
 interface LyricsModalProps {
   isOpen: boolean;
@@ -9,8 +9,10 @@ interface LyricsModalProps {
 }
 
 export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => {
-  const { currentTrack, progress, seek } = useAudio();
+  const { currentTrack, progress, seek, activeEngine } = useAudio();
   const activeLineRef = useRef<HTMLDivElement | null>(null);
+
+  const { lyrics, isSynced, source } = useTrackLyrics(currentTrack, activeEngine);
 
   useEffect(() => {
     if (activeLineRef.current) {
@@ -22,8 +24,6 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
   }, [Math.floor(progress)]);
 
   if (!isOpen || !currentTrack) return null;
-
-  const lyrics = getTrackLyrics(currentTrack);
 
   // Find active line index
   let activeIndex = 0;
@@ -48,8 +48,13 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
             referrerPolicy="no-referrer"
           />
           <div>
-            <h2 className="text-2xl font-bold text-white tracking-tight">{currentTrack.title}</h2>
-            <p className="text-sm text-[#a7a7a7]">{currentTrack.artistName} • Synced Lyrics</p>
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-bold text-white tracking-tight">{currentTrack.title}</h2>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/30">
+                {source === 'lrclib' ? 'LRCLIB Synced' : 'Synced'}
+              </span>
+            </div>
+            <p className="text-sm text-[#a7a7a7]">{currentTrack.artistName} • Synchronized Moving Lyrics</p>
           </div>
         </div>
 
@@ -87,8 +92,9 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
         })}
       </div>
 
-      <div className="text-center text-xs text-[#727272] py-2">
-        Tip: Click any lyric line to jump playback directly to that position.
+      <div className="text-center text-xs text-[#727272] py-2 flex items-center justify-center gap-2">
+        <Disc3 className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
+        <span>Click any lyric line to jump playback directly to that position.</span>
       </div>
     </div>
   );

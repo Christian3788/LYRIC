@@ -969,22 +969,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Die For You ♪"
+            "time": 0,
+            "text": "♪ (Atmospheric R&B chords) ♪"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 4,
+            "text": "I'm findin' ways to articulate the feeling I'm goin' through"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 9,
+            "text": "I just can't say I don't love you"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 14,
+            "text": "'Cause I love you, yeah"
+      },
+      {
+            "time": 18,
+            "text": "It's hard for me to communicate the thoughts that I hold"
+      },
+      {
+            "time": 23,
+            "text": "But tonight I'm screamin', \"Baby, I'm dying for you\""
+      },
+      {
+            "time": 27,
+            "text": "Baby, I would die for you!"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -1149,22 +1161,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ cardigan ♪"
+            "time": 0,
+            "text": "♪ (Gentle piano intro) ♪"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 5,
+            "text": "Vintage tee, brand new phone"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 9,
+            "text": "High heels on cobblestones"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 13,
+            "text": "When you are young, they assume you know nothing"
+      },
+      {
+            "time": 19,
+            "text": "Sequin smile, black lipstick"
+      },
+      {
+            "time": 23,
+            "text": "Sensual politics"
+      },
+      {
+            "time": 27,
+            "text": "When you are young, they assume you know nothing"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -1285,22 +1309,30 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ What Was I Made For? ♪"
+            "time": 0,
+            "text": "♪ (Delicate piano chords) ♪"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 4,
+            "text": "Hm, hm..."
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 9,
+            "text": "I used to float, now I just fall down"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 15,
+            "text": "I used to know, but I'm not sure now"
+      },
+      {
+            "time": 21,
+            "text": "What I was made for..."
+      },
+      {
+            "time": 26,
+            "text": "What was I made for?"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -1321,22 +1353,30 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Happier Than Ever (Edit) ♪"
+            "time": 0,
+            "text": "♪ (Intimate acoustic guitar) ♪"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 4,
+            "text": "When I'm away from you"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 9,
+            "text": "I'm happier than ever"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 14,
+            "text": "Wish I could explain it better"
+      },
+      {
+            "time": 19,
+            "text": "I wish it wasn't true..."
+      },
+      {
+            "time": 24,
+            "text": "Give me a day or two to think of something clever"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -1457,22 +1497,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ All The Stars ♪"
+            "time": 0,
+            "text": "♪ (Celestial synth pulses) ♪"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 4,
+            "text": "Love, let's talk about love"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 8,
+            "text": "Is it anything and everything you hoped for?"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 13,
+            "text": "Or do the feeling haunt you?"
+      },
+      {
+            "time": 17,
+            "text": "I know the feeling haunt you"
+      },
+      {
+            "time": 21,
+            "text": "This may be the night that my dreams might let me know"
+      },
+      {
+            "time": 26,
+            "text": "All the stars are closer..."
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -1493,22 +1545,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ DNA. ♪"
+            "time": 0,
+            "text": "I got, I got, I got, I got"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 2,
+            "text": "Loyalty, got royalty inside my DNA"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 5,
+            "text": "Cocaine quarter piece, got war and peace inside my DNA"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 9,
+            "text": "I got power, poison, pain and joy inside my DNA"
+      },
+      {
+            "time": 14,
+            "text": "I got hustle though, ambition flow inside my DNA"
+      },
+      {
+            "time": 19,
+            "text": "I was born like this, since one like this, immaculate conception"
+      },
+      {
+            "time": 25,
+            "text": "I transform like this, perform like this inside my DNA"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -1581,22 +1645,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Don't Start Now ♪"
+            "time": 0,
+            "text": "If you don't wanna see me"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 4,
+            "text": "♪ (Funky nu-disco bassline) ♪"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 8,
+            "text": "Did a full 180, crazy"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 13,
+            "text": "Thinking 'bout the way I was"
+      },
+      {
+            "time": 17,
+            "text": "Did the heartbreak change me? Maybe"
+      },
+      {
+            "time": 21,
+            "text": "But look at where I ended up"
+      },
+      {
+            "time": 25,
+            "text": "I'm all good already, so moved on, it's scary!"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -1617,22 +1693,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Houdini ♪"
+            "time": 0,
+            "text": "Okay, huh..."
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 4,
+            "text": "♪ (Kevin Parker synth bassline) ♪"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 8,
+            "text": "Mm, ah..."
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 12,
+            "text": "I come and I go"
+      },
+      {
+            "time": 16,
+            "text": "Tell me all the ways you need me"
+      },
+      {
+            "time": 20,
+            "text": "I'm not here for long, catch me or I go Houdini"
+      },
+      {
+            "time": 26,
+            "text": "Catch me or I go Houdini!"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -1653,22 +1741,30 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Dance The Night ♪"
+            "time": 0,
+            "text": "♪ (Glittering disco strings) ♪"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 5,
+            "text": "Baby, you can find me under the lights"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 10,
+            "text": "Diamonds under my eyes"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 14,
+            "text": "Turn the rhythm up, don't you wanna just come along for the ride?"
+      },
+      {
+            "time": 18,
+            "text": "Ooh, my outfit so tight, you can see my heartbeat tonight"
+      },
+      {
+            "time": 24,
+            "text": "I could dance, I could dance, I could dance!"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -1737,22 +1833,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ One Dance ♪"
+            "time": 0,
+            "text": "Baby, I like your style"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 5,
+            "text": "♪ (Afrobeats rhythmic groove) ♪"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 9,
+            "text": "Grips on your waist, front way, back way"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 13,
+            "text": "You know that I don't play"
+      },
+      {
+            "time": 16,
+            "text": "Streets not safe but I never run away"
+      },
+      {
+            "time": 20,
+            "text": "Even when I'm away"
+      },
+      {
+            "time": 24,
+            "text": "I need a one dance, got a Hennessy in my hand"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -1773,22 +1881,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Hotline Bling ♪"
+            "time": 0,
+            "text": "You used to call me on my..."
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 4,
+            "text": "You used to, you used to"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 8,
+            "text": "Yeah"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 12,
+            "text": "You used to call me on my cell phone"
+      },
+      {
+            "time": 17,
+            "text": "Late night when you need my love"
+      },
+      {
+            "time": 22,
+            "text": "Call me on my cell phone"
+      },
+      {
+            "time": 26,
+            "text": "Late night when you need my love"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -1809,22 +1929,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Passionfruit ♪"
+            "time": 0,
+            "text": "♪ (Muted tropical house beat) ♪"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 5,
+            "text": "Hold on, hold on..."
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 9,
+            "text": "Listen to the beat drop"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 13,
+            "text": "Clearing out my mind, boy, don't mind me"
+      },
+      {
+            "time": 18,
+            "text": "Passionate from miles away"
+      },
+      {
+            "time": 22,
+            "text": "Passive with the things you say"
+      },
+      {
+            "time": 26,
+            "text": "Passin' up on my old ways"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -1889,22 +2021,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Sunflower (Spider-Man: Into the Spider-Verse) ♪"
+            "time": 0,
+            "text": "Ayy, ayy, ayy, ayy (ooh)"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 5,
+            "text": "Ooh, ooh, ooh, oooh (ooh)"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 9,
+            "text": "Needless to say, I keep her in check"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 14,
+            "text": "She was all bad-bad, nevertheless"
+      },
+      {
+            "time": 18,
+            "text": "Callin' it quits now, baby, I'm a wreck"
+      },
+      {
+            "time": 22,
+            "text": "Crash at my place, baby, you're a wreck"
+      },
+      {
+            "time": 26,
+            "text": "Then you're left in the dust, unless I stuck by ya"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -1925,22 +2069,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Chemical ♪"
+            "time": 0,
+            "text": "♪ (Catchy pop-rock guitar intro) ♪"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 5,
+            "text": "Oxytocin makin' it all okay"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 10,
+            "text": "When I come back down, it doesn't feel the same"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 15,
+            "text": "Now I'm sittin' 'round waitin' for the world to end all day"
+      },
+      {
+            "time": 20,
+            "text": "'Cause I couldn't leave you if I tried"
+      },
+      {
+            "time": 24,
+            "text": "No, I couldn't leave you if I tried"
+      },
+      {
+            "time": 27,
+            "text": "Seven empty glasses of your chemical!"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -2005,22 +2161,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ 24K Magic ♪"
+            "time": 0,
+            "text": "Tonight..."
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 4,
+            "text": "I just want to take you higher"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 8,
+            "text": "Throw your hands up in the sky"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 12,
+            "text": "Let's set this party off right"
+      },
+      {
+            "time": 17,
+            "text": "Players, put yo' pinky rings up to the moon"
+      },
+      {
+            "time": 22,
+            "text": "Girls, what y'all tryin' to do?"
+      },
+      {
+            "time": 26,
+            "text": "24 karat magic in the air!"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -2041,22 +2209,30 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Die With A Smile ♪"
+            "time": 0,
+            "text": "Ooh, ooh..."
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 5,
+            "text": "I, I just woke up from a dream"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 11,
+            "text": "Where you and I had to say goodbye"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 16,
+            "text": "And I don't know what it all means"
+      },
+      {
+            "time": 21,
+            "text": "If the world was ending, I'd wanna be next to you"
+      },
+      {
+            "time": 26,
+            "text": "If the party was over and our time on Earth was through..."
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -2125,22 +2301,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Snooze ♪"
+            "time": 0,
+            "text": "♪ (Smooth R&B guitar riff) ♪"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 5,
+            "text": "I'll touch that fire for you"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 9,
+            "text": "I do that three, four times again, I testify for you"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 14,
+            "text": "I told that lie, I'd kill for you"
+      },
+      {
+            "time": 18,
+            "text": "I do what all of them around you scared to do, I'm not"
+      },
+      {
+            "time": 23,
+            "text": "Long as you hold me down, I'm down"
+      },
+      {
+            "time": 27,
+            "text": "I can't lose when I'm with you, I can't snooze!"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -2161,22 +2349,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Saturn ♪"
+            "time": 0,
+            "text": "♪ (Lush harp and vocal harmonies) ♪"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 5,
+            "text": "If there's another universe"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 9,
+            "text": "Please make some noise, give me a sign"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 14,
+            "text": "This can't be life"
+      },
+      {
+            "time": 18,
+            "text": "If there's a point to losing love"
+      },
+      {
+            "time": 22,
+            "text": "Repeating pain, why would I try?"
+      },
+      {
+            "time": 26,
+            "text": "I'll be better off on Saturn..."
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -2245,22 +2445,30 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Yellow ♪"
+            "time": 0,
+            "text": "♪ (Warm acoustic guitar chord progression) ♪"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 6,
+            "text": "Look at the stars"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 10,
+            "text": "Look how they shine for you"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 15,
+            "text": "And everything you do"
+      },
+      {
+            "time": 20,
+            "text": "Yeah, they were all yellow"
+      },
+      {
+            "time": 25,
+            "text": "I came along, I wrote a song for you"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -2281,22 +2489,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Something Just Like This ♪"
+            "time": 0,
+            "text": "♪ (Warm piano chords) ♪"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 5,
+            "text": "I've been reading books of old"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 9,
+            "text": "The legends and the myths"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 12,
+            "text": "Achilles and his gold, Hercules and his gifts"
+      },
+      {
+            "time": 17,
+            "text": "Spiderman's control, and Batman with his fists"
+      },
+      {
+            "time": 22,
+            "text": "And clearly I see I don't see myself upon that list"
+      },
+      {
+            "time": 27,
+            "text": "She said, \"Where'd you wanna go? How much you wanna risk?\""
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -2365,22 +2585,34 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Watermelon Sugar ♪"
+            "time": 0,
+            "text": "Tastes like strawberries on a summer evenin'"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 5,
+            "text": "And it sounds just like a song"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 9,
+            "text": "I want more berries and that summer feelin'"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 14,
+            "text": "It's so wonderful and warm"
+      },
+      {
+            "time": 19,
+            "text": "Breathe me in, breathe me out"
+      },
+      {
+            "time": 23,
+            "text": "I don't know if I could ever go without"
+      },
+      {
+            "time": 27,
+            "text": "Watermelon sugar high!"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -2401,22 +2633,30 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ vampire ♪"
+            "time": 0,
+            "text": "♪ (Gothic piano intro) ♪"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 5,
+            "text": "I hate to give the satisfaction asking how you're doing now"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 10,
+            "text": "How's the castle built off people you pretend to care about?"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 15,
+            "text": "Just what you wanted, look at you, cool guy, you got it"
+      },
+      {
+            "time": 20,
+            "text": "I should've known it was strange"
+      },
+      {
+            "time": 24,
+            "text": "Bloodsucker, fame fucker, bleedin' me dry like a goddamn vampire!"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -2437,22 +2677,30 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ good 4 u ♪"
+            "time": 0,
+            "text": "♪ (Punchy pop-punk bassline) ♪"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 4,
+            "text": "Well, good for you, I guess you moved on really easily"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 9,
+            "text": "You found a new girl and it only took a couple weeks"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 14,
+            "text": "Remember when you said that you wanted to give me the world?"
+      },
+      {
+            "time": 19,
+            "text": "And good for you, I guess that you've been workin' on yourself"
+      },
+      {
+            "time": 24,
+            "text": "Good for you, you're lookin' happy and healthy, not me!"
       }
-    ],
+],
     "isRealSong": true
   },
   {
@@ -2517,22 +2765,30 @@ export const TRACKS: Track[] = [
     "audioFileSize": 1048576,
     "lyrics": [
       {
-        "time": 0,
-        "text": "♪ Don't Stop Me Now ♪"
+            "time": 0,
+            "text": "Tonight I'm gonna have myself a real good time"
       },
       {
-        "time": 6,
-        "text": "High-fidelity real audio playback"
+            "time": 5,
+            "text": "I feel alive"
       },
       {
-        "time": 15,
-        "text": "Feel the rhythm and emotion of the performance"
+            "time": 9,
+            "text": "And the world I'll turn it inside out, yeah"
       },
       {
-        "time": 24,
-        "text": "♪ (Vocal crescendo & melody) ♪"
+            "time": 14,
+            "text": "I'm floating around in ecstasy"
+      },
+      {
+            "time": 18,
+            "text": "So don't stop me now, don't stop me"
+      },
+      {
+            "time": 23,
+            "text": "'Cause I'm having a good time, having a good time!"
       }
-    ],
+],
     "isRealSong": true
   }
 ];

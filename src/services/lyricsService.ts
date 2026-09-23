@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Track } from '../types';
 
 export interface LyricLine {
@@ -5,41 +6,52 @@ export interface LyricLine {
   text: string;
 }
 
-// Known song lyrics database for instant high-fidelity matching
-const KNOWN_LYRICS: Record<string, LyricLine[]> = {
+export interface LyricsResult {
+  lyrics: LyricLine[];
+  isSynced: boolean;
+  source: 'embedded' | 'lrclib' | 'cached' | 'fallback';
+  isLoading: boolean;
+  error: string | null;
+}
+
+// In-memory cache for fetched lyrics to eliminate network requests on repeats
+const lyricsCache = new Map<string, { lyrics: LyricLine[]; isSynced: boolean; source: 'lrclib' | 'cached' }>();
+
+// Famous full-song synced lyrics database for key top tracks (full duration for YouTube / full tracks)
+export const FAMOUS_FULL_SONG_LYRICS: Record<string, LyricLine[]> = {
   'blinding lights': [
     { time: 0, text: "♪ (Synthwave synthesizer intro) ♪" },
-    { time: 4, text: "Yeah..." },
-    { time: 6, text: "I've been tryna call" },
-    { time: 10, text: "I've been on my own for long enough" },
-    { time: 14, text: "Maybe you can show me how to love, maybe" },
-    { time: 19, text: "I'm going through withdrawals" },
-    { time: 23, text: "You don't even have to do too much" },
-    { time: 28, text: "You can turn me on with just a touch, baby" },
-    { time: 33, text: "I look around and Sin City's cold and empty" },
-    { time: 37, text: "No one's around to judge me" },
-    { time: 42, text: "I can't see clearly when you're gone" },
-    { time: 48, text: "I said, ooh, I'm blinded by the lights" },
-    { time: 54, text: "No, I can't sleep until I feel your touch" },
-    { time: 60, text: "I said, ooh, I'm drowning in the night" },
-    { time: 66, text: "Oh, when I'm like this, you're the one I trust" },
-    { time: 73, text: "♪ (Euphoric synth break) ♪" },
-    { time: 82, text: "I'm running out of time" },
-    { time: 86, text: "'Cause I can see the sun light up the sky" },
-    { time: 91, text: "So I hit the road in overdrive, baby, oh" },
-    { time: 96, text: "The city's cold and empty" },
-    { time: 100, text: "No one's around to judge me" },
-    { time: 105, text: "I can't see clearly when you're gone" },
-    { time: 111, text: "I said, ooh, I'm blinded by the lights" },
-    { time: 117, text: "No, I can't sleep until I feel your touch" },
-    { time: 123, text: "I said, ooh, I'm drowning in the night" },
-    { time: 129, text: "Oh, when I'm like this, you're the one I trust" },
-    { time: 138, text: "I'm just walking by to let you know" },
-    { time: 143, text: "I could never say it on the phone" },
-    { time: 148, text: "Will never let you go this time" },
-    { time: 154, text: "I said, ooh, I'm blinded by the lights" },
-    { time: 160, text: "No, I can't sleep until I feel your touch" },
-    { time: 168, text: "♪ (Blinding synth outro) ♪" },
+    { time: 13, text: "Yeah..." },
+    { time: 27, text: "I've been tryna call" },
+    { time: 30, text: "I've been on my own for long enough" },
+    { time: 33, text: "Maybe you can show me how to love, maybe" },
+    { time: 38, text: "I'm going through withdrawals" },
+    { time: 41, text: "You don't even have to do too much" },
+    { time: 44, text: "You can turn me on with just a touch, baby" },
+    { time: 49, text: "I look around and Sin City's cold and empty" },
+    { time: 53, text: "No one's around to judge me" },
+    { time: 56, text: "I can't see clearly when you're gone" },
+    { time: 61, text: "I said, ooh, I'm blinded by the lights!" },
+    { time: 67, text: "No, I can't sleep until I feel your touch" },
+    { time: 73, text: "I said, ooh, I'm drowning in the night" },
+    { time: 79, text: "Oh, when I'm like this, you're the one I trust" },
+    { time: 87, text: "♪ (Euphoric synth break) ♪" },
+    { time: 96, text: "I'm running out of time" },
+    { time: 99, text: "'Cause I can see the sun light up the sky" },
+    { time: 104, text: "So I hit the road in overdrive, baby, oh" },
+    { time: 109, text: "The city's cold and empty" },
+    { time: 113, text: "No one's around to judge me" },
+    { time: 118, text: "I can't see clearly when you're gone" },
+    { time: 124, text: "I said, ooh, I'm blinded by the lights!" },
+    { time: 130, text: "No, I can't sleep until I feel your touch" },
+    { time: 136, text: "I said, ooh, I'm drowning in the night" },
+    { time: 142, text: "Oh, when I'm like this, you're the one I trust" },
+    { time: 151, text: "I'm just walking by to let you know" },
+    { time: 156, text: "I could never say it on the phone" },
+    { time: 161, text: "Will never let you go this time" },
+    { time: 167, text: "I said, ooh, I'm blinded by the lights!" },
+    { time: 173, text: "No, I can't sleep until I feel your touch" },
+    { time: 182, text: "♪ (Blinding synth outro) ♪" },
   ],
   'cruel summer': [
     { time: 0, text: "♪ (Fever dream synth intro) ♪" },
@@ -98,222 +110,263 @@ const KNOWN_LYRICS: Record<string, LyricLine[]> = {
     { time: 74, text: "I come alive in the fall time, I" },
     { time: 78, text: "No competition, don't hesitate" },
     { time: 82, text: "Let's drown the sorrow in the champagne" },
-    { time: 86, text: "Look what you've done" },
-    { time: 90, text: "I'm a motherfuckin' starboy!" },
+    { time: 88, text: "Look what you've done" },
+    { time: 92, text: "I'm a motherfuckin' starboy!" },
   ],
   'birds of a feather': [
-    { time: 0, text: "♪ (Warm guitar chord progression) ♪" },
-    { time: 6, text: "I want you to stay" },
-    { time: 11, text: "'Til I'm in the grave" },
-    { time: 15, text: "'Til I rot away, dead and buried" },
+    { time: 0, text: "♪ (Lush indie dream-pop guitars) ♪" },
+    { time: 8, text: "I want you to stay" },
+    { time: 12, text: "'Til I'm in the grave" },
+    { time: 16, text: "'Til I rot away, dead and buried" },
     { time: 21, text: "'Til I'm in the casket you carry" },
-    { time: 27, text: "If you go, I'm going too, uh" },
-    { time: 33, text: "'Cause it was always you, alright" },
-    { time: 38, text: "And if I'm turning blue, please don't save me" },
-    { time: 44, text: "Nothing in this world could ever break me" },
-    { time: 49, text: "Birds of a feather, we should stick together, I know" },
-    { time: 55, text: "I said I'd never think I wasn't better alone" },
+    { time: 26, text: "If you go, I'm goin' too, uh" },
+    { time: 31, text: "'Cause it was always you, alright" },
+    { time: 36, text: "And if I'm turnin' blue, please don't save me" },
+    { time: 41, text: "Nothing left to lose without my baby" },
+    { time: 47, text: "Birds of a feather, we should stick together, I know" },
+    { time: 54, text: "I said I'd never think I wasn't better alone" },
     { time: 61, text: "Can't change the weather, might not be forever" },
-    { time: 66, text: "But if it's forever, it's even better" },
-    { time: 72, text: "And I don't know what I'm cryin' for" },
-    { time: 77, text: "I don't think I could love you more" },
+    { time: 66, text: "But if it's forever, it's even better!" },
+    { time: 73, text: "And I don't know what I'm cryin' for" },
+    { time: 78, text: "I don't think I could love you more" },
     { time: 83, text: "It might not be long, but baby, I" },
-    { time: 88, text: "I'll love you 'til the day that I die" },
-    { time: 94, text: "'Til the day that I die" },
-    { time: 100, text: "'Til the light leaves my eyes" },
-    { time: 106, text: "'Til the day that I die" },
+    { time: 90, text: "I'll love you 'til the day that I die!" },
   ],
   'not like us': [
-    { time: 0, text: "♪ Psst, I see dead people ♪" },
+    { time: 0, text: "Psst, I see dead people..." },
     { time: 5, text: "Mustard on the beat, ho!" },
     { time: 8, text: "Ayy, Mustard on the beat, ho" },
-    { time: 11, text: "Deebo, any rap nigga, he a free throw" },
-    { time: 15, text: "Man down, call an amber lamps, tell him, 'Breathe, bro'" },
-    { time: 19, text: "Nail a nigga to the cross, he walk around like Teezo" },
-    { time: 23, text: "What's up with these jabroni-ass niggas tryna see Compton?" },
-    { time: 28, text: "The industry can hate, but the streets keep rockin'" },
-    { time: 32, text: "Say, Drake, I hear you like 'em young" },
-    { time: 36, text: "You better not ever go to cell block one" },
-    { time: 40, text: "To any bitch that talk to him and they in love" },
-    { time: 45, text: "Just make sure you hide your lil' sister from him" },
-    { time: 50, text: "They not like us, they not like us, they not like us!" },
-    { time: 55, text: "They not like us, they not like us, they not like us!" },
-    { time: 60, text: "Wop, wop, wop, wop, wop, Dot, fuck 'em up" },
-    { time: 65, text: "Wop, wop, wop, wop, wop, I'ma do my stuff" },
-    { time: 70, text: "Why you trollin' like a bitch? Ain't you tired?" },
-    { time: 74, text: "Tryna strike a chord and it's probably A-minor!" },
+    { time: 11, text: "De-de-demonstrate, they not like us" },
+    { time: 15, text: "They not like us, they not like us" },
+    { time: 19, text: "You think the Bay gon' let you disrespect Pac, nigga?" },
+    { time: 23, text: "I think that Oakland show gon' be your last stop, nigga" },
+    { time: 27, text: "Did Cole foul, I don't know why you still pretendin'" },
+    { time: 31, text: "What is it, the braids? I hurt your feelings?" },
+    { time: 35, text: "Sometimes you gotta pop out and show niggas" },
+    { time: 39, text: "Certified Boogeyman, I'm the one that up the score with 'em" },
+    { time: 43, text: "Walk him down, whole crew do him cold" },
+    { time: 47, text: "Say, Drake, I hear you like 'em young" },
+    { time: 51, text: "You better not ever go to cell block one" },
+    { time: 55, text: "To any bitch that talk to him and they in love" },
+    { time: 59, text: "Just make sure you hide your lil' sister from him" },
+    { time: 63, text: "They not like us, they not like us, they not like us!" },
   ],
   'bohemian rhapsody': [
     { time: 0, text: "Is this the real life? Is this just fantasy?" },
     { time: 7, text: "Caught in a landslide, no escape from reality" },
-    { time: 15, text: "Open your eyes, look up to the skies and see" },
-    { time: 24, text: "I'm just a poor boy, I need no sympathy" },
-    { time: 30, text: "Because I'm easy come, easy go, little high, little low" },
-    { time: 39, text: "Any way the wind blows doesn't really matter to me, to me" },
-    { time: 53, text: "Mama, just killed a man" },
-    { time: 60, text: "Put a gun against his head, pulled my trigger, now he's dead" },
+    { time: 14, text: "Open your eyes, look up to the skies and see" },
+    { time: 23, text: "I'm just a poor boy, I need no sympathy" },
+    { time: 28, text: "Because I'm easy come, easy go, little high, little low" },
+    { time: 36, text: "Any way the wind blows doesn't really matter to me, to me" },
+    { time: 49, text: "♪ (Freddie Mercury piano ballad begins) ♪" },
+    { time: 55, text: "Mama, just killed a man" },
+    { time: 61, text: "Put a gun against his head, pulled my trigger, now he's dead" },
     { time: 70, text: "Mama, life had just begun" },
-    { time: 77, text: "But now I've gone and thrown it all away" },
+    { time: 76, text: "But now I've gone and thrown it all away" },
     { time: 84, text: "Mama, ooh, didn't mean to make you cry" },
-    { time: 93, text: "If I'm not back again this time tomorrow" },
+    { time: 94, text: "If I'm not back again this time tomorrow" },
     { time: 99, text: "Carry on, carry on as if nothing really matters" },
-    { time: 112, text: "Too late, my time has come" },
-    { time: 118, text: "Sends shivers down my spine, body's aching all the time" },
-    { time: 126, text: "Goodbye, everybody, I've got to go" },
-    { time: 132, text: "Gotta leave you all behind and face the truth" },
-    { time: 140, text: "Mama, ooh, I don't wanna die" },
-    { time: 147, text: "I sometimes wish I'd never been born at all" },
-    { time: 155, text: "♪ (Brian May guitar solo) ♪" },
-    { time: 180, text: "I see a little silhouetto of a man" },
-    { time: 183, text: "Scaramouche, Scaramouche, will you do the Fandango?" },
-    { time: 186, text: "Thunderbolt and lightning, very, very frightening me!" },
-    { time: 191, text: "Galileo! Galileo! Galileo Figaro, magnifico!" },
-  ]
+    { time: 111, text: "Too late, my time has come" },
+    { time: 117, text: "Sends shivers down my spine, body's aching all the time" },
+    { time: 125, text: "Goodbye, everybody, I've got to go" },
+    { time: 131, text: "Gotta leave you all behind and face the truth" },
+    { time: 139, text: "Mama, ooh, I don't wanna die" },
+    { time: 148, text: "I sometimes wish I'd never been born at all!" },
+  ],
 };
 
 /**
- * Intelligent procedural lyric generator:
- * Guarantees that EVERY song playing in the platform has rich, timestamped,
- * rhythmic moving lyrics across its entire duration.
+ * Clean track title for lyric database lookups.
  */
-export function generateProceduralLyrics(track: Track): LyricLine[] {
-  const duration = track.durationSeconds && track.durationSeconds > 20 ? track.durationSeconds : 180;
-  const title = track.title || 'Untitled Track';
-  const artist = track.artistName || 'Artist';
-  const genre = (track.genre || 'Electronic').toLowerCase();
-
-  // Create thematic lyric lines based on genre and title
-  const introPhrases = [
-    `♪ (${track.genre || 'Music'} instrumental build-up) ♪`,
-    `Yeah... ${title}`,
-    `Turn the volume up`,
-    `Feel the rhythm moving in`,
-  ];
-
-  const verseOnePhrases = [
-    `Walking through the city when the midnight shadows fall`,
-    `Echoes in the silence, hearing ${artist} through the wall`,
-    `Every heartbeat syncing with the pulse inside the floor`,
-    `Never felt this energy or atmosphere before`,
-    `Chasing down the moments that will never fade away`,
-    `Living in the soundwaves, leaving yesterday`,
-  ];
-
-  const preChorusPhrases = [
-    `Can you feel the frequency rising in your chest?`,
-    `Every single limitation put into the test`,
-    `Here it comes, get ready for the drop...`,
-  ];
-
-  const chorusPhrases = [
-    `This is ${title}, hear it scream into the night!`,
-    `Blazing like a wildfire in the neon light`,
-    `Singing every melody and dancing to the groove`,
-    `Nothing in this universe could ever make us move`,
-    `Oh-oh, ${title}!`,
-  ];
-
-  const verseTwoPhrases = [
-    `Now the bass is driving and the lights are flashing green`,
-    `Vibrations in the air, the wildest scene you've ever seen`,
-    `Step by step we're breaking through into the stratosphere`,
-    `With ${artist} on the speakers, everything is clear`,
-  ];
-
-  const bridgePhrases = [
-    `Hold it right now, let the melody breathe...`,
-    `Feel the harmony unfolding, never want to leave`,
-    `Count it down together: 3, 2, 1—`,
-  ];
-
-  const outroPhrases = [
-    `Yeah, that was ${title}...`,
-    `♪ (Outro fade out & melodic resonance) ♪`,
-    `♪ (End of track) ♪`,
-  ];
-
-  const lines: LyricLine[] = [];
-
-  // Calculate timestamp intervals proportionally across duration
-  const step = Math.max(4, Math.floor(duration / 28));
-
-  let currentTime = 0;
-  lines.push({ time: currentTime, text: introPhrases[0] });
-
-  currentTime += 5;
-  lines.push({ time: currentTime, text: introPhrases[1] });
-
-  // Verse 1
-  currentTime += 5;
-  for (let i = 0; i < verseOnePhrases.length; i++) {
-    lines.push({ time: currentTime, text: verseOnePhrases[i] });
-    currentTime += step;
-  }
-
-  // Pre-Chorus
-  for (let i = 0; i < preChorusPhrases.length; i++) {
-    lines.push({ time: currentTime, text: preChorusPhrases[i] });
-    currentTime += Math.floor(step * 0.9);
-  }
-
-  // Chorus 1
-  for (let i = 0; i < chorusPhrases.length; i++) {
-    lines.push({ time: currentTime, text: chorusPhrases[i] });
-    currentTime += step;
-  }
-
-  // Mid break
-  lines.push({ time: currentTime, text: `♪ (${artist} guitar & synth rhythm) ♪` });
-  currentTime += step;
-
-  // Verse 2
-  for (let i = 0; i < verseTwoPhrases.length; i++) {
-    lines.push({ time: currentTime, text: verseTwoPhrases[i] });
-    currentTime += step;
-  }
-
-  // Bridge
-  for (let i = 0; i < bridgePhrases.length; i++) {
-    lines.push({ time: currentTime, text: bridgePhrases[i] });
-    currentTime += Math.floor(step * 0.85);
-  }
-
-  // Final Chorus
-  for (let i = 0; i < chorusPhrases.length; i++) {
-    lines.push({ time: currentTime, text: chorusPhrases[i] });
-    currentTime += step;
-  }
-
-  // Outro
-  for (let i = 0; i < outroPhrases.length; i++) {
-    if (currentTime < duration) {
-      lines.push({ time: currentTime, text: outroPhrases[i] });
-      currentTime += Math.min(step, 8);
-    }
-  }
-
-  return lines;
+export function cleanTrackTitle(title: string): string {
+  return (title || '')
+    .toLowerCase()
+    .replace(/\s*[\(\[][^)\)]*(feat|ft|remix|version|deluxe|edit|single|official|explicit|video)[^\)\]]*[\)\]]/gi, '')
+    .replace(/-\s*Single.*/i, '')
+    .trim();
 }
 
 /**
- * Returns moving synchronized lyrics for ANY track playing.
+ * Asynchronously fetch synchronized lyrics from backend API (connected to LRCLIB).
  */
-export function getTrackLyrics(track?: Track | null): LyricLine[] {
+export async function fetchOnlineLyrics(
+  track: Track,
+  signal?: AbortSignal
+): Promise<{ lyrics: LyricLine[]; isSynced: boolean }> {
+  if (!track || !track.title) {
+    return { lyrics: [], isSynced: false };
+  }
+
+  const cacheKey = `${cleanTrackTitle(track.title)}_${(track.artistName || '').toLowerCase().trim()}`;
+  if (lyricsCache.has(cacheKey)) {
+    const cached = lyricsCache.get(cacheKey)!;
+    return { lyrics: cached.lyrics, isSynced: cached.isSynced };
+  }
+
+  try {
+    const params = new URLSearchParams({
+      title: track.title,
+      artist: track.artistName || '',
+      duration: String(track.durationSeconds || 180),
+    });
+
+    const res = await fetch(`/api/lyrics?${params.toString()}`, { signal });
+    if (!res.ok) {
+      throw new Error(`Lyrics API responded with status ${res.status}`);
+    }
+
+    const data = await res.json();
+    if (data && data.found && Array.isArray(data.lyrics) && data.lyrics.length > 0) {
+      lyricsCache.set(cacheKey, {
+        lyrics: data.lyrics,
+        isSynced: !!data.isSynced,
+        source: 'lrclib',
+      });
+      return { lyrics: data.lyrics, isSynced: !!data.isSynced };
+    }
+
+    return { lyrics: [], isSynced: false };
+  } catch (err: any) {
+    if (err.name === 'AbortError') return { lyrics: [], isSynced: false };
+    console.warn('Failed to fetch online lyrics:', err?.message || err);
+    return { lyrics: [], isSynced: false };
+  }
+}
+
+/**
+ * Synchronous resolver for track lyrics.
+ * Prioritizes:
+ * 1. Embedded track.lyrics for standard 30s preview playback.
+ * 2. Cached synced lyrics for full-song or searched tracks.
+ * 3. Famous full songs if full-song mode is active.
+ * 4. Graceful musical interlude indicators.
+ */
+export function getTrackLyrics(track?: Track | null, isFullSong: boolean = false): LyricLine[] {
   if (!track) return [];
 
-  // 1. Check known famous lyrics database
-  const cleanTitle = (track.title || '').trim().toLowerCase();
-  for (const [key, knownLines] of Object.entries(KNOWN_LYRICS)) {
-    if (cleanTitle.includes(key) || key.includes(cleanTitle)) {
-      return knownLines;
+  const cleanTitle = cleanTrackTitle(track.title);
+  const cacheKey = `${cleanTitle}_${(track.artistName || '').toLowerCase().trim()}`;
+
+  // If in full song mode (YouTube or long duration), check cache or famous full lyrics first
+  if (isFullSong || (track.durationSeconds && track.durationSeconds > 45) || track.isYouTube) {
+    if (lyricsCache.has(cacheKey)) {
+      return lyricsCache.get(cacheKey)!.lyrics;
+    }
+    for (const [key, fullLines] of Object.entries(FAMOUS_FULL_SONG_LYRICS)) {
+      if (cleanTitle.includes(key) || key.includes(cleanTitle)) {
+        return fullLines;
+      }
     }
   }
 
-  // 2. Check track's embedded lyrics
+  // Preview Mode: embedded track lyrics specifically match the 30-second audio snippet
   if (track.lyrics && track.lyrics.length >= 3) {
     return track.lyrics;
   }
 
-  // 3. Fallback: Procedurally generated timestamped lyrics perfectly timed to the song's duration
-  return generateProceduralLyrics(track);
+  // Check cache
+  if (lyricsCache.has(cacheKey)) {
+    return lyricsCache.get(cacheKey)!.lyrics;
+  }
+
+  // Check famous full database
+  for (const [key, fullLines] of Object.entries(FAMOUS_FULL_SONG_LYRICS)) {
+    if (cleanTitle.includes(key) || key.includes(cleanTitle)) {
+      return fullLines;
+    }
+  }
+
+  // Default elegant fallback for tracks without lyrics yet
+  const duration = track.durationSeconds || 30;
+  return [
+    { time: 0, text: `♪ ${track.title} ♪` },
+    { time: Math.min(4, duration * 0.1), text: `${track.artistName}` },
+    { time: Math.min(10, duration * 0.3), text: `♪ (Playing official audio) ♪` },
+    { time: Math.min(18, duration * 0.6), text: `♪ (Musical performance) ♪` },
+    { time: Math.min(25, duration * 0.85), text: `♪ (Outro & crescendo) ♪` },
+  ];
+}
+
+/**
+ * React hook to automatically manage synchronized lyrics with online fetching,
+ * cache lookups, and manual timing calibration.
+ */
+export function useTrackLyrics(
+  track?: Track | null,
+  activeEngine: string = 'audio',
+  timingOffset: number = 0,
+  forceFullSong: boolean = false
+): LyricsResult & { timingOffset: number; reloadLyrics: () => void } {
+  const isFullSong = forceFullSong || activeEngine === 'youtube' || (track?.durationSeconds || 0) > 45 || !!track?.isYouTube;
+
+  const [rawLyrics, setRawLyrics] = useState<LyricLine[]>(() => getTrackLyrics(track, isFullSong));
+  const [isSynced, setIsSynced] = useState<boolean>(true);
+  const [source, setSource] = useState<'embedded' | 'lrclib' | 'cached' | 'fallback'>('embedded');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadLyrics = useCallback(async (abortSignal?: AbortSignal) => {
+    if (!track) {
+      setRawLyrics([]);
+      return;
+    }
+
+    // 1. Instant local display
+    const local = getTrackLyrics(track, isFullSong);
+    setRawLyrics(local);
+    setSource(track.lyrics && !isFullSong ? 'embedded' : 'cached');
+
+    // If already has comprehensive embedded lyrics for preview, we don't need network fetch unless in full-song mode
+    if (!isFullSong && track.lyrics && track.lyrics.length >= 5) {
+      setIsSynced(true);
+      return;
+    }
+
+    // 2. Fetch online synced lyrics from LRCLIB
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await fetchOnlineLyrics(track, abortSignal);
+      if (result.lyrics.length > 0) {
+        setRawLyrics(result.lyrics);
+        setIsSynced(result.isSynced);
+        setSource('lrclib');
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        setError('Could not load online synced lyrics');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [track, isFullSong]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadLyrics(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [loadLyrics]);
+
+  // Apply manual calibration timing offset to all lyric lines
+  const calibratedLyrics = useMemo(() => {
+    if (timingOffset === 0) return rawLyrics;
+    return rawLyrics.map(line => ({
+      ...line,
+      time: Math.max(0, Math.round((line.time + timingOffset) * 10) / 10),
+    }));
+  }, [rawLyrics, timingOffset]);
+
+  return {
+    lyrics: calibratedLyrics,
+    isSynced,
+    source,
+    isLoading,
+    error,
+    timingOffset,
+    reloadLyrics: () => loadLyrics(),
+  };
 }

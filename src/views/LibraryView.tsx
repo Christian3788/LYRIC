@@ -5,6 +5,7 @@ import { ARTISTS, TRACKS } from '../data/mockCatalog';
 import { getOfflineTracks, removeTrackOffline } from '../services/offlineStorageService';
 import { useAudio } from '../context/AudioContext';
 import { formatTime } from '../utils/formatters';
+import { useLikedTrackIds } from '../services/favoritesService';
 
 interface LibraryViewProps {
   playlists: Playlist[];
@@ -23,6 +24,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
 }) => {
   const [activeFilter, setActiveFilter] = useState<'all' | 'playlists' | 'artists' | 'downloaded'>('all');
   const [offlineTracks, setOfflineTracks] = useState<Track[]>([]);
+  const likedTrackIds = useLikedTrackIds();
   const { playTrack, currentTrack, isPlaying } = useAudio();
 
   const loadOffline = async () => {
@@ -169,7 +171,9 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               </div>
               <div>
                 <h3 className="text-xl font-black text-white">Liked Songs</h3>
-                <p className="text-xs text-white/80 mt-1">5 auto-saved tracks</p>
+                <p className="text-xs text-white/80 mt-1">
+                  {likedTrackIds.length} saved {likedTrackIds.length === 1 ? 'track' : 'tracks'}
+                </p>
               </div>
             </div>
           )}

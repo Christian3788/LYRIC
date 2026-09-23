@@ -16,6 +16,7 @@ import { TRACKS, PLAYLISTS, ALBUMS } from '../data/mockCatalog';
 import { useAudio } from '../context/AudioContext';
 import { formatTime, formatCompactNumber } from '../utils/formatters';
 import { downloadTrackOffline } from '../services/offlineStorageService';
+import { useLikedTrackIds, toggleLikeTrack } from '../services/favoritesService';
 
 interface PlaylistDetailViewProps {
   playlistId: string;
@@ -31,6 +32,7 @@ export const PlaylistDetailView: React.FC<PlaylistDetailViewProps> = ({
   const { currentTrack, isPlaying, playTrack, togglePlayPause, toggleShuffle, startRadio } = useAudio();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadedIds, setDownloadedIds] = useState<Set<string>>(new Set());
+  const likedTrackIds = useLikedTrackIds();
 
   const handleDownload = async (e: React.MouseEvent, track: Track) => {
     e.stopPropagation();
@@ -55,7 +57,7 @@ export const PlaylistDetailView: React.FC<PlaylistDetailViewProps> = ({
       creatorId: 'user_1',
       creatorName: 'You',
       isPublic: false,
-      trackIds: ['track_1', 'track_4', 'track_7', 'track_10', 'track_2'],
+      trackIds: likedTrackIds,
       createdAt: '2026-01-01',
     };
   } else {
@@ -248,6 +250,21 @@ export const PlaylistDetailView: React.FC<PlaylistDetailViewProps> = ({
 
                 {/* Duration & Hover Quick Actions */}
                 <div className="col-span-5 md:col-span-3 lg:col-span-1 flex items-center justify-end gap-2 text-xs font-mono text-[#a7a7a7]">
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      toggleLikeTrack(track.id);
+                    }}
+                    className={`p-1 transition-opacity ${
+                      likedTrackIds.includes(track.id)
+                        ? 'opacity-100 text-emerald-400'
+                        : 'opacity-0 group-hover:opacity-100 hover:text-white text-[#777]'
+                    }`}
+                    title={likedTrackIds.includes(track.id) ? 'Liked' : 'Save to Liked Songs'}
+                  >
+                    <Heart className={`w-3.5 h-3.5 ${likedTrackIds.includes(track.id) ? 'fill-current' : ''}`} />
+                  </button>
+
                   <button
                     onClick={e => {
                       e.stopPropagation();

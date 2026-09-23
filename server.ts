@@ -762,6 +762,160 @@ app.get('/api/audius/search', async (req, res) => {
   }
 });
 
+// -------------------------------------------------------------
+// REAL SYNCED LYRICS API (LRCLIB + Memory Cache + LRC Parser)
+// -------------------------------------------------------------
+interface ServerLyricLine {
+  time: number;
+  text: string;
+}
+
+const serverLyricsCache = new Map<string, { timestamp: number; result: any }>();
+const LYRICS_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function parseServerLrc(lrcText: string): ServerLyricLine[] {
+  const lines = lrcText.split('\n');
+  const result: ServerLyricLine[] = [];
+  const timeRegex = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]/g;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (
+      !trimmed ||
+      trimmed.startsWith('[ti:') ||
+      trimmed.startsWith('[ar:') ||
+      trimmed.startsWith('[al:') ||
+      trimmed.startsWith('[by:') ||
+      trimmed.startsWith('[offset:')
+    ) {
+      continue;
+    }
+
+    let match;
+    const timestamps: number[] = [];
+    while ((match = timeRegex.exec(trimmed)) !== null) {
+      const min = parseInt(match[1], 10);
+      const sec = parseInt(match[2], 10);
+      const frac = match[3] ? parseFloat('0.' + match[3]) : 0;
+      timestamps.push(min * 60 + sec + frac);
+    }
+
+    const text = trimmed.replace(timeRegex, '').trim();
+    if (text) {
+      for (const t of timestamps) {
+        result.push({ time: Math.round(t * 10) / 10, text });
+      }
+    }
+  }
+
+  result.sort((a, b) => a.time - b.time);
+  return result;
+}
+
+app.get('/api/lyrics', async (req, res) => {
+  const title = String(req.query.title || '').trim();
+  const artist = String(req.query.artist || '').trim();
+  const duration = parseInt(String(req.query.duration || '180'), 10) || 180;
+
+  if (!title) {
+    res.status(400).json({ status: 'error', message: 'Title is required', lyrics: [] });
+    return;
+  }
+
+  const cacheKey = `${title.toLowerCase()}_${artist.toLowerCase()}`;
+  const cached = serverLyricsCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < LYRICS_CACHE_TTL_MS) {
+    res.json(cached.result);
+    return;
+  }
+
+  // Clean title for search: strip bracketed metadata
+  const cleanTitle = title
+    .replace(/\s*[\(\[][^)\)]*(feat|ft|remix|version|deluxe|edit|single|official|explicit|video)[^\)\]]*[\)\]]/gi, '')
+    .replace(/-\s*Single.*/i, '')
+    .trim();
+
+  try {
+    // 1. Direct match on LRCLIB
+    const targetUrl = `https://lrclib.net/api/get?track_name=${encodeURIComponent(cleanTitle)}&artist_name=${encodeURIComponent(artist)}`;
+    const response = await fetch(targetUrl, {
+      headers: { 'User-Agent': 'DOODLE-Music-App/1.0 (https://github.com)' },
+    });
+    let data: any = response.ok ? await response.json() : null;
+
+    // 2. Search fallback if direct match failed or has no lyrics
+    if (!data || (!data.syncedLyrics && !data.plainLyrics)) {
+      const searchQuery = `${cleanTitle} ${artist}`.trim();
+      const sRes = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(searchQuery)}`, {
+        headers: { 'User-Agent': 'DOODLE-Music-App/1.0 (https://github.com)' },
+      });
+      if (sRes.ok) {
+        const sData: any = await sRes.json();
+        if (Array.isArray(sData) && sData.length > 0) {
+          data = sData.find((item: any) => item.syncedLyrics) || sData[0];
+        }
+      }
+    }
+
+    if (data && data.syncedLyrics) {
+      const parsedLyrics = parseServerLrc(data.syncedLyrics);
+      const result = {
+        status: 'ok',
+        found: true,
+        isSynced: true,
+        trackName: data.trackName || title,
+        artistName: data.artistName || artist,
+        lyrics: parsedLyrics,
+      };
+      serverLyricsCache.set(cacheKey, { timestamp: Date.now(), result });
+      res.json(result);
+      return;
+    }
+
+    if (data && data.plainLyrics) {
+      // Format plain lyrics cleanly into lines with estimated pacing
+      const plainLines = data.plainLyrics
+        .split('\n')
+        .map((l: string) => l.trim())
+        .filter((l: string) => l.length > 0);
+
+      const step = Math.max(3, duration / Math.max(1, plainLines.length));
+      const pacedLyrics: ServerLyricLine[] = plainLines.map((text: string, idx: number) => ({
+        time: Math.round(idx * step * 10) / 10,
+        text,
+      }));
+
+      const result = {
+        status: 'ok',
+        found: true,
+        isSynced: false,
+        trackName: data.trackName || title,
+        artistName: data.artistName || artist,
+        lyrics: pacedLyrics,
+      };
+      serverLyricsCache.set(cacheKey, { timestamp: Date.now(), result });
+      res.json(result);
+      return;
+    }
+
+    res.json({
+      status: 'ok',
+      found: false,
+      isSynced: false,
+      lyrics: [],
+      message: 'No synced lyrics found on open database',
+    });
+  } catch (err: any) {
+    console.error('Error fetching lyrics from LRCLIB:', err?.message || err);
+    res.status(500).json({
+      status: 'error',
+      found: false,
+      lyrics: [],
+      message: 'Failed to fetch lyrics',
+    });
+  }
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', engine: 'Node.js/Express 206 Streaming + WebSockets', uptime: process.uptime() });
