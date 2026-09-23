@@ -1,6 +1,12 @@
 # DOODLE 🎵 — Cloud Audio Streaming Platform
 
-A modern, high-performance, production-ready music streaming platform inspired by Spotify, architected with scalable audio delivery, HTTP 206 Partial Content range requests, persistent global playback state, and real-time synchronized listening sessions.
+[![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Open Source](https://img.shields.io/badge/Open%20Source-%E2%99%A5-blue.svg)](https://github.com)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+
+A modern, open-source, high-performance music streaming platform inspired by Spotify, architected with scalable audio delivery, HTTP 206 Partial Content range requests, persistent global playback state, and real-time synchronized listening sessions.
 
 ---
 
@@ -158,5 +164,14 @@ Content-Length: 1048576
 
 ---
 
+## 🤝 Contributing & Community
+
+Contributions are what make the open-source community an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+- Please read our [Contributing Guidelines](CONTRIBUTING.md) to get started with setup, conventions, and submitting PRs.
+- Please review our [Code of Conduct](CODE_OF_CONDUCT.md) before participating in discussions or submitting issues.
+
+---
+
 ## 📄 License
-MIT License. Built with ❤️ for scalable audio streaming.
+This project is open-source software licensed under the [MIT License](LICENSE). Built with ❤️ for scalable audio streaming.
