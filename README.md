@@ -4,6 +4,13 @@ A modern, high-performance, production-ready music streaming platform inspired b
 
 ---
 
+## 🌐 Live URLs
+
+- **Public Production (Shared App):** [https://ais-pre-plw472jcyhmheexx7l3wfz-537735573587.europe-west2.run.app](https://ais-pre-plw472jcyhmheexx7l3wfz-537735573587.europe-west2.run.app)
+- **Development Preview:** [https://ais-dev-plw472jcyhmheexx7l3wfz-537735573587.europe-west2.run.app](https://ais-dev-plw472jcyhmheexx7l3wfz-537735573587.europe-west2.run.app)
+
+---
+
 ## 🌟 Highlights & Key Features
 
 - **Persistent Global Audio Engine**: Seamless background audio playback across page navigations with singleton `AudioContext` state, track preloading, volume normalization, and MediaSession API integration.
