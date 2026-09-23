@@ -131,16 +131,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         )}
 
-        {/* Architecture Specs Blueprint Button */}
-        <button
-          id="navbar-arch-btn"
-          onClick={onOpenArchitecture}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-black font-bold text-xs shadow-md transition-all hover:scale-105 active:scale-95"
-        >
-          <Cpu className="w-3.5 h-3.5" />
-          <span>System Blueprint</span>
-        </button>
-
         {/* Profile Avatar */}
         <div
           id="navbar-profile-btn"

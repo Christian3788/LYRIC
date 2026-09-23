@@ -167,21 +167,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           ))}
         </div>
-
-        {/* 3. Bottom Architecture & System Specs Inspector Trigger */}
-        <div className="pt-3 border-t border-[#282828] mt-2">
-          <button
-            id="open-architecture-btn"
-            onClick={onOpenArchitecture}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-gradient-to-r from-[#1c221e] to-[#171f26] border border-emerald-500/30 hover:border-emerald-500/60 text-white text-xs font-semibold shadow transition-all hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Terminal className="w-4 h-4 text-emerald-400" />
-            <div className="flex flex-col text-left">
-              <span className="font-bold text-white leading-tight">System Blueprint</span>
-              <span className="text-[10px] text-emerald-400 font-mono">Postgres • Go 206 • Docker</span>
-            </div>
-          </button>
-        </div>
       </div>
     </aside>
   );
