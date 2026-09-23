@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Play,
   Pause,
@@ -7,11 +7,15 @@ import {
   Clock,
   MoreHorizontal,
   Music,
+  Radio,
+  Download,
+  CheckCircle2,
 } from 'lucide-react';
 import { Playlist, Track } from '../types';
 import { TRACKS, PLAYLISTS, ALBUMS } from '../data/mockCatalog';
 import { useAudio } from '../context/AudioContext';
 import { formatTime, formatCompactNumber } from '../utils/formatters';
+import { downloadTrackOffline } from '../services/offlineStorageService';
 
 interface PlaylistDetailViewProps {
   playlistId: string;
@@ -24,7 +28,19 @@ export const PlaylistDetailView: React.FC<PlaylistDetailViewProps> = ({
   onNavigateArtist,
   onNavigateAlbum,
 }) => {
-  const { currentTrack, isPlaying, playTrack, togglePlayPause, toggleShuffle } = useAudio();
+  const { currentTrack, isPlaying, playTrack, togglePlayPause, toggleShuffle, startRadio } = useAudio();
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadedIds, setDownloadedIds] = useState<Set<string>>(new Set());
+
+  const handleDownload = async (e: React.MouseEvent, track: Track) => {
+    e.stopPropagation();
+    setDownloadingId(track.id);
+    const ok = await downloadTrackOffline(track);
+    setDownloadingId(null);
+    if (ok) {
+      setDownloadedIds(prev => new Set([...prev, track.id]));
+    }
+  };
 
   // Find playlist or fallback to Liked Songs
   const isLikedView = playlistId === 'liked';
@@ -131,6 +147,17 @@ export const PlaylistDetailView: React.FC<PlaylistDetailViewProps> = ({
           <Heart className="w-6 h-6" />
         </button>
 
+        {playlistTracks.length > 0 && (
+          <button
+            onClick={() => startRadio(playlistTracks[0])}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#242424] hover:bg-[#323232] text-white text-xs font-bold border border-[#383838] transition-all hover:scale-105"
+            title="Start Smart Radio based on this playlist"
+          >
+            <Radio className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Playlist Radio</span>
+          </button>
+        )}
+
         <button className="text-[#a7a7a7] hover:text-white transition-colors">
           <MoreHorizontal className="w-6 h-6" />
         </button>
@@ -219,9 +246,32 @@ export const PlaylistDetailView: React.FC<PlaylistDetailViewProps> = ({
                   {formatCompactNumber(track.playsCount)}
                 </div>
 
-                {/* Duration */}
-                <div className="col-span-5 md:col-span-3 lg:col-span-1 text-right text-xs font-mono text-[#a7a7a7]">
-                  {formatTime(track.durationSeconds)}
+                {/* Duration & Hover Quick Actions */}
+                <div className="col-span-5 md:col-span-3 lg:col-span-1 flex items-center justify-end gap-2 text-xs font-mono text-[#a7a7a7]">
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      startRadio(track);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:text-emerald-400 transition-opacity"
+                    title="Start Track Radio"
+                  >
+                    <Radio className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    onClick={e => handleDownload(e, track)}
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:text-emerald-400 transition-opacity"
+                    title="Download Track Offline"
+                  >
+                    {downloadedIds.has(track.id) ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+
+                  <span>{formatTime(track.durationSeconds)}</span>
                 </div>
               </div>
             );

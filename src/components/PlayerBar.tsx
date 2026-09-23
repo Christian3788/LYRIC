@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Play,
   Pause,
@@ -18,15 +18,29 @@ import {
   Video,
   Loader2,
   Headphones,
+  Sliders,
+  Moon,
+  PictureInPicture2,
+  Download,
+  CheckCircle2,
 } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
 import { useParty } from '../context/PartyContext';
 import { formatTime } from '../utils/formatters';
+import {
+  downloadTrackOffline,
+  removeTrackOffline,
+  isTrackOffline,
+} from '../services/offlineStorageService';
 
 interface PlayerBarProps {
   onOpenQueue: () => void;
   onOpenLyrics: () => void;
   onOpenParty: () => void;
+  onOpenEqualizer: () => void;
+  onOpenSleepTimer: () => void;
+  onToggleMiniPlayer: () => void;
+  isMiniPlayerOpen?: boolean;
   onNavigateArtist?: (artistId: string) => void;
   onNavigateAlbum?: (albumId: string) => void;
   isLyricsActive?: boolean;
@@ -36,6 +50,10 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
   onOpenQueue,
   onOpenLyrics,
   onOpenParty,
+  onOpenEqualizer,
+  onOpenSleepTimer,
+  onToggleMiniPlayer,
+  isMiniPlayerOpen,
   onNavigateArtist,
   onNavigateAlbum,
   isLyricsActive,
@@ -67,6 +85,10 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
     switchToYouTubeVideo,
     playAsBackgroundAudio,
     isSearchingYouTube,
+    startRadio,
+    isRadioActive,
+    radioSeedTrack,
+    sleepTimerRemaining,
   } = useAudio();
 
   const { isInParty, isHost, room } = useParty();
@@ -74,6 +96,29 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
   const [hoverSeekTime, setHoverSeekTime] = useState<number | null>(null);
   const [hoverSeekPos, setHoverSeekPos] = useState<number>(0);
   const progressBarRef = useRef<HTMLDivElement>(null);
+
+  // Offline download status
+  const [isDownloaded, setIsDownloaded] = useState<boolean>(false);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (currentTrack) {
+      isTrackOffline(currentTrack.id).then(setIsDownloaded);
+    }
+  }, [currentTrack?.id]);
+
+  const handleToggleDownload = async () => {
+    if (!currentTrack) return;
+    if (isDownloaded) {
+      await removeTrackOffline(currentTrack.id);
+      setIsDownloaded(false);
+    } else {
+      setIsDownloading(true);
+      const ok = await downloadTrackOffline(currentTrack);
+      setIsDownloading(false);
+      if (ok) setIsDownloaded(true);
+    }
+  };
 
   if (!currentTrack) return null;
 
@@ -161,6 +206,39 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
           title={isLiked ? 'Remove from Your Library' : 'Save to Your Library'}
         >
           <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+        </button>
+
+        {/* Track Radio Action */}
+        <button
+          id="player-radio-btn"
+          onClick={() => currentTrack && startRadio(currentTrack)}
+          className={`p-1.5 transition-all ${
+            isRadioActive && radioSeedTrack?.id === currentTrack.id
+              ? 'text-emerald-400 font-bold bg-emerald-500/20 rounded-full'
+              : 'text-[#b3b3b3] hover:text-white'
+          }`}
+          title="Start Track Radio (Infinite Smart Queue)"
+        >
+          <Radio className="w-4 h-4" />
+        </button>
+
+        {/* Offline Download Action */}
+        <button
+          id="player-download-btn"
+          onClick={handleToggleDownload}
+          disabled={isDownloading}
+          className={`p-1.5 transition-all ${
+            isDownloaded ? 'text-emerald-400' : 'text-[#b3b3b3] hover:text-white'
+          }`}
+          title={isDownloaded ? 'Downloaded Offline (Click to remove)' : 'Download for Offline Listening'}
+        >
+          {isDownloading ? (
+            <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+          ) : isDownloaded ? (
+            <CheckCircle2 className="w-4 h-4 fill-emerald-500/20 text-emerald-400" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
         </button>
 
         {isInParty && (
@@ -357,6 +435,54 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
             </button>
           </div>
         )}
+
+        {/* 10-Band Equalizer & DSP */}
+        <button
+          id="player-equalizer-btn"
+          onClick={onOpenEqualizer}
+          className="text-[#a7a7a7] hover:text-white transition-colors p-1.5 rounded-full hover:bg-[#282828]"
+          title="10-Band Equalizer & Sound Enhancer"
+        >
+          <Sliders className="w-4 h-4" />
+        </button>
+
+        {/* Sleep Timer */}
+        <button
+          id="player-sleeptimer-btn"
+          onClick={onOpenSleepTimer}
+          className={`flex items-center gap-1 transition-all p-1.5 rounded-full ${
+            sleepTimerRemaining !== null && sleepTimerRemaining > 0
+              ? 'text-indigo-400 bg-indigo-500/20 ring-1 ring-indigo-500/40 px-2'
+              : 'text-[#a7a7a7] hover:text-white hover:bg-[#282828]'
+          }`}
+          title={
+            sleepTimerRemaining !== null
+              ? `Sleep Timer Active: ${Math.floor(sleepTimerRemaining / 60)}m ${sleepTimerRemaining % 60}s`
+              : 'Sleep Timer & Fade-Out'
+          }
+        >
+          <Moon className="w-4 h-4 fill-current" />
+          {sleepTimerRemaining !== null && sleepTimerRemaining > 0 && (
+            <span className="text-[10px] font-mono font-bold">
+              {Math.floor(sleepTimerRemaining / 60)}:{sleepTimerRemaining % 60 < 10 ? '0' : ''}
+              {sleepTimerRemaining % 60}
+            </span>
+          )}
+        </button>
+
+        {/* Floating Mini Player (Picture-in-Picture) */}
+        <button
+          id="player-miniplayer-btn"
+          onClick={onToggleMiniPlayer}
+          className={`transition-all p-1.5 rounded-full ${
+            isMiniPlayerOpen
+              ? 'text-emerald-400 bg-emerald-500/20 ring-1 ring-emerald-500/40'
+              : 'text-[#a7a7a7] hover:text-white hover:bg-[#282828]'
+          }`}
+          title="Floating Mini Player"
+        >
+          <PictureInPicture2 className="w-4 h-4" />
+        </button>
 
         {/* Synced Lyrics Toggle */}
         <button

@@ -17,15 +17,52 @@ A modern, open-source, high-performance music streaming platform inspired by Spo
 
 ---
 
-## 🌟 Highlights & Key Features
+## 🌟 Highlights & Complete Feature Suite
 
-- **Persistent Global Audio Engine**: Seamless background audio playback across page navigations with singleton `AudioContext` state, track preloading, volume normalization, and MediaSession API integration.
-- **HTTP 206 Byte-Range Streaming**: High-throughput audio chunk delivery supporting RFC 7233 byte-range requests (`bytes=start-end`), random seeking, and low initial playback latency.
-- **Live Interactive Architecture Modal & Test Lab**: In-app architectural inspector featuring production PostgreSQL DDL with `pg_trgm`, Prisma schemas, Go streaming worker source, Docker Compose manifests, and a live HTTP 206 Range Request Test Lab.
-- **Real-Time Party Rooms ("Listen Together")**: Synchronized multi-client playback rooms with sub-180ms drift auto-correction and real-time participant state.
-- **Queue Management & Preloading**: Dynamic queue drawer with drag/reorder capability, history, and seamless next-track preloading into memory.
-- **Rich Catalog Views**: Full-featured views for Home, Search (real-time filtering by track, artist, and genre), Library, Playlist Details, Album Details, and Artist Profiles.
-- **Synchronized Moving Lyrics Section**: Dedicated full-canvas lyrics visualizer with real-time word/line tracking, automatic smooth auto-scrolling that moves alongside any playing music, karaoke sing-along focus mode, click-to-seek jump points, font size switcher, and dynamic procedural lyric generation for any track.
+### 1. 🎛️ 10-Band Graphic Equalizer & Spatial DSP
+- **10 Independent Frequency Bands**: Precision sliders across `32Hz`, `64Hz`, `125Hz`, `250Hz`, `500Hz`, `1kHz`, `2kHz`, `4kHz`, `8kHz`, and `16kHz` with ±12dB gain range.
+- **Instant Audio Presets**: Quick-select presets including *Flat*, *Bass Boost*, *Vocal Enhancer*, *Treble Boost*, *Electronic/Club*, *Rock/Live*, *Acoustic*, and *Chill*.
+- **Real-Time Frequency Response Visualizer**: Live HTML5 Canvas rendering of the EQ curve with interactive control points and frequency labels.
+- **Bass Boost & Spatial Audio Stereo Widener**: Dynamic sound enhancements with persistent user preferences saved to `localStorage`.
+
+### 2. 📻 Infinite Track & Artist Radio
+- **Algorithmic Smart Queue**: Generates an endless, cohesive queue of related tracks from any seed track, artist, or playlist.
+- **Acoustic Similarity Scoring**: Multi-factor scoring matching genre classification (+50 pts), artist affinity (+40 pts), and BPM tempo proximity (10–30 pts).
+- **One-Click Radio Trigger**: Available on every track row, the player bar, and playlist headers.
+
+### 3. 🌙 Sleep Timer with Smooth Fade-Out
+- **Flexible Timer Durations**: Presets for 15, 30, 45, 60 minutes, or stop at the *End of Current Track*.
+- **30-Second Gentle Fade-Out**: Automatically attenuates master volume smoothly over the final 30 seconds before pausing playback to ensure a peaceful rest.
+- **Active Countdown Pill**: Displays live minute-and-second countdown directly on the player bar icon.
+
+### 4. 🪟 Floating Mini-Player (Picture-in-Picture)
+- **Detached Compact Player**: Floating overlay docked in the corner of your screen showing high-resolution album artwork, track title, artist name, and playback progress.
+- **Instant Controls**: Play/pause, next/previous track, and direct maximize button to jump straight into the full-screen moving lyrics view.
+
+### 5. 🎨 Custom Playlist Cover & Metadata Editor
+- **Custom Artwork Studio**: Pick from curated high-resolution photography covers, modern multi-stop vibrant color gradients, or supply any custom image URL.
+- **Metadata Management**: Edit playlist title and rich description with instantaneous library state synchronization.
+
+### 6. 💾 Offline Music Caching (IndexedDB Storage)
+- **Zero-Bandwidth Playback**: Download any track directly to browser `IndexedDB` storage (`doodle_offline_db`) as binary audio blobs.
+- **Dedicated Library Offline Filter**: Instant "Offline Cache" filter tab in Your Library showing cached track count, storage details, and one-click offline play or removal.
+- **Offline Indicator Badges**: Visual confirmation on downloaded tracks across the player bar and track tables.
+
+### 7. 🎤 Synchronized Moving Lyrics Section
+- **Real-Time Word & Line Tracking**: Dynamic synced lyrics moving in sync with audio playback with millisecond precision.
+- **Karaoke Focus Mode**: Smooth active-line highlighting, glowing typography, and automated fluid scroll keeping the current verse centered.
+- **Click-to-Seek Navigation**: Click any lyric timestamp or lyric line to jump directly to that part of the song.
+- **Procedural Lyrics Engine**: High-fidelity procedurally generated lyrics for any track in the catalog when live metadata is not supplied.
+
+### 8. 👥 Real-Time Party Rooms ("Listen Together")
+- **Multi-Client Playback Sync**: Sub-180ms drift auto-correction between host and guests.
+- **Room Sharing & Presence**: Unique 6-character room codes with live participant counter and host broadcast controls.
+
+### 9. ⚡ Persistent Global Audio Engine & HTTP 206 Streaming
+- **Uninterrupted Playback**: Singleton `AudioContext` maintains persistent playback during navigation across views and modals.
+- **RFC 7233 Byte-Range Requests**: High-throughput chunk streaming with HTTP 206 partial content support for ultra-fast scrubbing and minimal buffer lag.
+- **Multi-Engine Audio Switching**: Seamless fallback between local HTTP 206 streaming, Audius decentralized tracks, and YouTube background audio/video playback.
+- **Queue Reordering**: Drag-and-drop or reorder tracks in the active queue drawer with next-track preloading.
 
 ---
 
@@ -154,10 +191,11 @@ Content-Length: 1048576
 │   └── stream_worker.go      # Go S3 HTTP 206 Range Stream Worker
 ├── src/
 │   ├── App.tsx               # Primary app shell and view router
-│   ├── components/           # UI components (PlayerBar, Sidebar, Modals, Navbar)
-│   ├── context/              # Global AudioContext and PartyContext
+│   ├── components/           # UI components (PlayerBar, Sidebar, Modals, EQ, MiniPlayer)
+│   ├── context/              # Global AudioContext (Player, Queue, Timer) and PartyContext
 │   ├── data/                 # Curated mock catalog (artists, albums, playlists)
-│   ├── views/                # Views (Home, Search, Library, Playlist, Artist, Album)
+│   ├── services/             # Audio services (Equalizer, Radio Queue, Offline IndexedDB)
+│   ├── views/                # Views (Home, Search, Library, Playlist, Artist, Album, Lyrics)
 │   └── types.ts              # TypeScript domain types
 └── README.md
 ```

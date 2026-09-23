@@ -36,10 +36,10 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
     isPlaying,
     progress,
     duration,
-    togglePlay,
+    togglePlayPause,
     seek,
-    playNext,
-    playPrevious,
+    nextTrack,
+    prevTrack,
     playTrack,
     volume,
     setVolume,
@@ -391,7 +391,7 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
                 <RotateCcw className="w-4 h-4" />
               </button>
               <button
-                onClick={togglePlay}
+                onClick={togglePlayPause}
                 className="w-12 h-12 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center transition-transform hover:scale-105 active:scale-95 shadow-xl shadow-emerald-500/30"
               >
                 {isPlaying ? (

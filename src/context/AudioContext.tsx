@@ -3,6 +3,8 @@ import { Track, RepeatMode } from '../types';
 import { fisherYatesShuffle } from '../utils/formatters';
 import { TRACKS } from '../data/mockCatalog';
 import { searchYouTubeMusic } from '../services/youtubeService';
+import { generateTrackRadio } from '../services/radioService';
+import { getOfflineAudioUrl } from '../services/offlineStorageService';
 
 declare global {
   interface Window {
@@ -57,6 +59,14 @@ interface AudioContextType {
   reorderQueue: (startIndex: number, endIndex: number) => void;
   clearQueue: () => void;
   injectRecommendedTracks: () => void;
+  sleepTimerRemaining: number | null;
+  activeSleepTimerMinutes: number | null;
+  setSleepTimer: (minutes: number | null, isEndOfTrack?: boolean) => void;
+  smoothFade: boolean;
+  toggleSmoothFade: () => void;
+  startRadio: (seedTrack: Track) => void;
+  isRadioActive: boolean;
+  radioSeedTrack: Track | null;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -90,6 +100,16 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const audioRef = useRef<HTMLAudioElement | null>(null);
   // Audio preloader instance for next track
   const preloaderRef = useRef<HTMLAudioElement | null>(null);
+
+  // Sleep Timer States
+  const [sleepTimerRemaining, setSleepTimerRemaining] = useState<number | null>(null);
+  const [activeSleepTimerMinutes, setActiveSleepTimerMinutes] = useState<number | null>(null);
+  const [smoothFade, setSmoothFade] = useState<boolean>(true);
+  const userVolBeforeFadeRef = useRef<number>(0.8);
+
+  // Radio States
+  const [isRadioActive, setIsRadioActive] = useState<boolean>(false);
+  const [radioSeedTrack, setRadioSeedTrack] = useState<Track | null>(null);
 
   const toggleVideo = useCallback(() => {
     setIsVideoOpen(prev => !prev);
@@ -763,6 +783,80 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [queue]);
 
+  // Sleep timer interval countdown and smooth fade-out
+  useEffect(() => {
+    if (sleepTimerRemaining === null) return;
+
+    if (sleepTimerRemaining <= 0) {
+      // Timer finished!
+      if (audioRef.current) audioRef.current.pause();
+      if (ytPlayerRef.current?.pauseVideo) {
+        try {
+          ytPlayerRef.current.pauseVideo();
+        } catch (e) {}
+      }
+      setIsPlaying(false);
+      // Restore user volume after fade
+      setVolumeState(userVolBeforeFadeRef.current);
+      if (audioRef.current) audioRef.current.volume = userVolBeforeFadeRef.current;
+      setSleepTimerRemaining(null);
+      setActiveSleepTimerMinutes(null);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setSleepTimerRemaining(prev => {
+        if (prev === null) return null;
+        const next = prev - 1;
+        // Smooth fade out in last 30 seconds
+        if (smoothFade && next <= 30 && next > 0) {
+          const fadeRatio = next / 30;
+          const fadedVol = Math.max(0.01, userVolBeforeFadeRef.current * fadeRatio);
+          setVolumeState(fadedVol);
+          if (audioRef.current) audioRef.current.volume = fadedVol;
+        }
+        return next;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [sleepTimerRemaining, smoothFade]);
+
+  const setSleepTimer = useCallback((minutes: number | null, isEndOfTrack?: boolean) => {
+    if (minutes === null) {
+      setSleepTimerRemaining(null);
+      setActiveSleepTimerMinutes(null);
+      setVolumeState(userVolBeforeFadeRef.current);
+      if (audioRef.current) audioRef.current.volume = userVolBeforeFadeRef.current;
+      return;
+    }
+
+    userVolBeforeFadeRef.current = volume;
+
+    if (isEndOfTrack) {
+      setActiveSleepTimerMinutes(-1);
+      const remainingSongSeconds = Math.max(5, Math.floor(duration - progress));
+      setSleepTimerRemaining(remainingSongSeconds);
+    } else {
+      setActiveSleepTimerMinutes(minutes);
+      setSleepTimerRemaining(minutes * 60);
+    }
+  }, [volume, duration, progress]);
+
+  const toggleSmoothFade = useCallback(() => {
+    setSmoothFade(prev => !prev);
+  }, []);
+
+  const startRadio = useCallback((seedTrack: Track) => {
+    const radioQueue = generateTrackRadio(seedTrack, TRACKS);
+    setIsRadioActive(true);
+    setRadioSeedTrack(seedTrack);
+    setOriginalQueue(radioQueue);
+    setQueue(radioQueue);
+    setQueueIndex(0);
+    loadAndPlayTrack(seedTrack, true);
+  }, [loadAndPlayTrack]);
+
   return (
     <AudioContext.Provider
       value={{
@@ -806,6 +900,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         reorderQueue,
         clearQueue,
         injectRecommendedTracks,
+        sleepTimerRemaining,
+        activeSleepTimerMinutes,
+        setSleepTimer,
+        smoothFade,
+        toggleSmoothFade,
+        startRadio,
+        isRadioActive,
+        radioSeedTrack,
       }}
     >
       {children}

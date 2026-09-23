@@ -10,6 +10,10 @@ import { LyricsModal } from './components/LyricsModal';
 import { PartyRoomModal } from './components/PartyRoomModal';
 import { ArchitectureModal } from './components/ArchitectureModal';
 import { CreatePlaylistModal } from './components/CreatePlaylistModal';
+import { EqualizerModal } from './components/EqualizerModal';
+import { SleepTimerModal } from './components/SleepTimerModal';
+import { MiniPlayer } from './components/MiniPlayer';
+import { EditPlaylistModal } from './components/EditPlaylistModal';
 import { HomeView } from './views/HomeView';
 import { SearchView } from './views/SearchView';
 import { LibraryView } from './views/LibraryView';
@@ -19,6 +23,7 @@ import { AlbumDetailView } from './views/AlbumDetailView';
 import { LyricsView } from './views/LyricsView';
 import { PLAYLISTS } from './data/mockCatalog';
 import { Playlist } from './types';
+import { useAudio } from './context/AudioContext';
 
 interface NavState {
   view: string;
@@ -26,6 +31,14 @@ interface NavState {
 }
 
 function MainApp() {
+  const {
+    sleepTimerRemaining,
+    activeSleepTimerMinutes,
+    setSleepTimer,
+    smoothFade,
+    toggleSmoothFade,
+  } = useAudio();
+
   // Navigation stack
   const [navHistory, setNavHistory] = useState<NavState[]>([{ view: 'home' }]);
   const [historyIdx, setHistoryIdx] = useState(0);
@@ -41,9 +54,17 @@ function MainApp() {
   const [isPartyOpen, setIsPartyOpen] = useState(false);
   const [isArchOpen, setIsArchOpen] = useState(false);
   const [isCreatePlaylistOpen, setIsCreatePlaylistOpen] = useState(false);
+  const [isEqualizerOpen, setIsEqualizerOpen] = useState(false);
+  const [isSleepTimerOpen, setIsSleepTimerOpen] = useState(false);
+  const [isMiniPlayerOpen, setIsMiniPlayerOpen] = useState(false);
+  const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null);
 
   // Playlists collection
   const [playlists, setPlaylists] = useState<Playlist[]>(PLAYLISTS);
+
+  const handleSavePlaylist = (updated: Playlist) => {
+    setPlaylists(prev => prev.map(p => (p.id === updated.id ? updated : p)));
+  };
 
   const navigateTo = (view: string, id?: string) => {
     // Truncate future history and push new state
@@ -138,6 +159,7 @@ function MainApp() {
               onNavigatePlaylist={id => navigateTo('playlist', id)}
               onNavigateArtist={id => navigateTo('artist', id)}
               onCreatePlaylist={() => setIsCreatePlaylistOpen(true)}
+              onEditPlaylist={p => setEditingPlaylist(p)}
             />
           )}
 
@@ -193,11 +215,15 @@ function MainApp() {
         }}
         isLyricsActive={currentNav.view === 'lyrics'}
         onOpenParty={() => setIsPartyOpen(true)}
+        onOpenEqualizer={() => setIsEqualizerOpen(true)}
+        onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
+        onToggleMiniPlayer={() => setIsMiniPlayerOpen(prev => !prev)}
+        isMiniPlayerOpen={isMiniPlayerOpen}
         onNavigateArtist={id => navigateTo('artist', id)}
         onNavigateAlbum={id => navigateTo('album', id)}
       />
 
-      {/* 4. Active Modals & Slide-overs */}
+      {/* 4. Active Modals & Floating Overlays */}
       <QueueDrawer isOpen={isQueueOpen} onClose={() => setIsQueueOpen(false)} />
       <LyricsModal isOpen={isLyricsOpen} onClose={() => setIsLyricsOpen(false)} />
       <PartyRoomModal isOpen={isPartyOpen} onClose={() => setIsPartyOpen(false)} />
@@ -206,6 +232,33 @@ function MainApp() {
         isOpen={isCreatePlaylistOpen}
         onClose={() => setIsCreatePlaylistOpen(false)}
         onCreate={handleCreatePlaylist}
+      />
+      <EqualizerModal
+        isOpen={isEqualizerOpen}
+        onClose={() => setIsEqualizerOpen(false)}
+      />
+      <SleepTimerModal
+        isOpen={isSleepTimerOpen}
+        onClose={() => setIsSleepTimerOpen(false)}
+        activeTimerMinutes={activeSleepTimerMinutes}
+        remainingSeconds={sleepTimerRemaining}
+        onSetTimer={setSleepTimer}
+        smoothFade={smoothFade}
+        onToggleSmoothFade={toggleSmoothFade}
+      />
+      <MiniPlayer
+        isOpen={isMiniPlayerOpen}
+        onClose={() => setIsMiniPlayerOpen(false)}
+        onExpand={() => {
+          setIsMiniPlayerOpen(false);
+          navigateTo('lyrics');
+        }}
+      />
+      <EditPlaylistModal
+        isOpen={!!editingPlaylist}
+        playlist={editingPlaylist}
+        onClose={() => setEditingPlaylist(null)}
+        onSave={handleSavePlaylist}
       />
     </div>
   );
