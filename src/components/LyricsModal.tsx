@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { X, Mic2 } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
+import { getTrackLyrics } from '../services/lyricsService';
 
 interface LyricsModalProps {
   isOpen: boolean;
@@ -22,12 +23,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
 
   if (!isOpen || !currentTrack) return null;
 
-  const lyrics = currentTrack.lyrics || [
-    { time: 0, text: `♪ ${currentTrack.title} ♪` },
-    { time: 6, text: `Performed by ${currentTrack.artistName}` },
-    { time: 15, text: `High-fidelity genuine audio playback` },
-    { time: 24, text: `♪ (Vocal performance & melody) ♪` },
-  ];
+  const lyrics = getTrackLyrics(currentTrack);
 
   // Find active line index
   let activeIndex = 0;

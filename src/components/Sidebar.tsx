@@ -9,8 +9,10 @@ import {
   Compass,
   Music2,
   Radio,
+  Mic2,
 } from 'lucide-react';
 import { Playlist } from '../types';
+import { useAudio } from '../context/AudioContext';
 
 interface SidebarProps {
   currentView: string;
@@ -29,6 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenArchitecture,
   onOpenParty,
 }) => {
+  const { currentTrack, isPlaying } = useAudio();
   return (
     <aside
       id="main-sidebar"
@@ -70,6 +73,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <Search className="w-5 h-5" />
             <span>Search</span>
+          </button>
+
+          <button
+            id="nav-lyrics-btn"
+            onClick={() => onNavigate('lyrics')}
+            className={`flex items-center justify-between px-3 py-2.5 rounded-md font-semibold text-sm transition-colors ${
+              currentView === 'lyrics' ? 'text-white bg-[#282828]' : 'hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-4">
+              <Mic2 className={`w-5 h-5 ${currentView === 'lyrics' ? 'text-emerald-400' : ''}`} />
+              <span>Lyrics</span>
+            </div>
+            {currentTrack && isPlaying && (
+              <span className="flex items-center gap-1 text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                SYNC
+              </span>
+            )}
           </button>
 
           <button

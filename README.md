@@ -25,7 +25,7 @@ A modern, open-source, high-performance music streaming platform inspired by Spo
 - **Real-Time Party Rooms ("Listen Together")**: Synchronized multi-client playback rooms with sub-180ms drift auto-correction and real-time participant state.
 - **Queue Management & Preloading**: Dynamic queue drawer with drag/reorder capability, history, and seamless next-track preloading into memory.
 - **Rich Catalog Views**: Full-featured views for Home, Search (real-time filtering by track, artist, and genre), Library, Playlist Details, Album Details, and Artist Profiles.
-- **Synchronized Lyrics**: Dedicated full-screen lyrics visualizer with real-time highlighted timestamps.
+- **Synchronized Moving Lyrics Section**: Dedicated full-canvas lyrics visualizer with real-time word/line tracking, automatic smooth auto-scrolling that moves alongside any playing music, karaoke sing-along focus mode, click-to-seek jump points, font size switcher, and dynamic procedural lyric generation for any track.
 
 ---
 

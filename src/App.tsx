@@ -16,6 +16,7 @@ import { LibraryView } from './views/LibraryView';
 import { PlaylistDetailView } from './views/PlaylistDetailView';
 import { ArtistDetailView } from './views/ArtistDetailView';
 import { AlbumDetailView } from './views/AlbumDetailView';
+import { LyricsView } from './views/LyricsView';
 import { PLAYLISTS } from './data/mockCatalog';
 import { Playlist } from './types';
 
@@ -169,6 +170,13 @@ function MainApp() {
               onNavigateArtist={id => navigateTo('artist', id)}
             />
           )}
+
+          {currentNav.view === 'lyrics' && (
+            <LyricsView
+              onNavigateArtist={id => navigateTo('artist', id)}
+              onNavigateAlbum={id => navigateTo('album', id)}
+            />
+          )}
         </main>
       </div>
 
@@ -176,7 +184,14 @@ function MainApp() {
       <YouTubePlayer />
       <PlayerBar
         onOpenQueue={() => setIsQueueOpen(true)}
-        onOpenLyrics={() => setIsLyricsOpen(true)}
+        onOpenLyrics={() => {
+          if (currentNav.view === 'lyrics') {
+            goBack();
+          } else {
+            navigateTo('lyrics');
+          }
+        }}
+        isLyricsActive={currentNav.view === 'lyrics'}
         onOpenParty={() => setIsPartyOpen(true)}
         onNavigateArtist={id => navigateTo('artist', id)}
         onNavigateAlbum={id => navigateTo('album', id)}

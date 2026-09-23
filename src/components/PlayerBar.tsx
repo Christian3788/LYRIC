@@ -29,6 +29,7 @@ interface PlayerBarProps {
   onOpenParty: () => void;
   onNavigateArtist?: (artistId: string) => void;
   onNavigateAlbum?: (albumId: string) => void;
+  isLyricsActive?: boolean;
 }
 
 export const PlayerBar: React.FC<PlayerBarProps> = ({
@@ -37,6 +38,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
   onOpenParty,
   onNavigateArtist,
   onNavigateAlbum,
+  isLyricsActive,
 }) => {
   const {
     currentTrack,
@@ -360,8 +362,12 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
         <button
           id="player-lyrics-btn"
           onClick={onOpenLyrics}
-          className="text-[#a7a7a7] hover:text-white transition-colors"
-          title="Synced Lyrics"
+          className={`transition-all p-1.5 rounded-full ${
+            isLyricsActive
+              ? 'text-emerald-400 bg-emerald-500/20 ring-1 ring-emerald-500/40'
+              : 'text-[#a7a7a7] hover:text-white hover:bg-[#282828]'
+          }`}
+          title="Synced Moving Lyrics"
         >
           <Mic2 className="w-4 h-4" />
         </button>
