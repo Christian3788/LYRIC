@@ -3,14 +3,14 @@ import http from 'http';
 import path from 'path';
 import { WebSocketServer, WebSocket } from 'ws';
 import { createServer as createViteServer } from 'vite';
-import { getOrCreateTrackBuffer } from './server/audioGenerator.js';
-import { fetchFMATracks, fetchFMAFeatured } from './server/fmaService.js';
-import { searchYouTubeMusic, getTrendingYouTubeMusic } from './server/youtubeService.js';
-import { getTrendingAudiusTracks, searchAudiusTracks } from './server/audiusService.js';
+import { getOrCreateTrackBuffer } from './server/audioGenerator.ts';
+import { fetchFMATracks, fetchFMAFeatured } from './server/fmaService.ts';
+import { searchYouTubeMusic, getTrendingYouTubeMusic } from './server/youtubeService.ts';
+import { getTrendingAudiusTracks, searchAudiusTracks } from './server/audiusService.ts';
 
 const app = express();
 const server = http.createServer(app);
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
 
